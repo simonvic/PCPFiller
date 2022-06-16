@@ -52,16 +52,17 @@ if args.supported_regions:
 os.makedirs(os.path.dirname(args.FETCH_OUTPUT_DIR + "/"), exist_ok=True)
 
 if args.PARTS_TO_FETCH is not None:
-	for partName in api.supported_parts if "ALL" in args.PARTS_TO_CONVERT else args.PARTS_TO_CONVERT:
-		if partName not in api.supported_parts:
-			print(partName + " is not currently supported by PCPartPicker.")
-		else:
+	for partName in api.supported_parts if "ALL" in args.PARTS_TO_FETCH else args.PARTS_TO_FETCH:
+		if partName in api.supported_parts:
 			fetchParts(partName)
+		else:
+			print(partName + " is not currently supported by PCPartPicker.")
+			
 
 
 if args.PARTS_TO_CONVERT is not None:
 	for partName in api.supported_parts if "ALL" in args.PARTS_TO_CONVERT else args.PARTS_TO_CONVERT:
-		if partName not in api.supported_parts:
-			print(partName + " is not currently supported by PCPartPicker.")
-		else:
+		if partName in api.supported_parts:
 			JSONParser.convertParts(partName, args.FETCH_OUTPUT_DIR, args.CSV_OUTPUT_DIR)
+		else:
+			print(partName + " is not currently supported by PCPartPicker.")

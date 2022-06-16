@@ -168,7 +168,7 @@ Di seguito una overview delle relazioni tra i vari campi</br>
 
 Come menzionato prima, con PCPFiller siamo principalmente interessati al prezzo (e alla predizione di esso), quindi si è deciso di ignorare l'attributo `Model` e anche il `Color`;
 nonostante il colore potrebbe essere parzialmente utile per la previsione del prezzo, in seguito ad una analisi dei dati (e futuri test di regressione), si è deciso di rimuoverlo perchè
-comportava solamente un incremento di complessità per il nostro modello, senza apportare a netti benefici.
+comportava solamente un incremento di complessità per il nostro modello, senza apportare netti benefici.
 
 Il prezzo è un valore numerico continuo, possiamo quindi scegliere vari algoritmi specializziati per regressione con valori numerici:
 
@@ -181,8 +181,8 @@ Il prezzo è un valore numerico continuo, possiamo quindi scegliere vari algorit
 Per quanto riguarda il testing, data la ridotta dimensione del dataset, il testing con un precentage-split non produceva buoni risultati (anche con seed diversi), a meno che non si alzava la percentuale di split, con il rischio però di overfitting.
 
 Creare un dataset specificatamente per il testing era fuori discussione.
-Si è quindi optato per una k-fold cross-validation.
 
+Si è quindi optato per una k-fold cross-validation.
 I test sono stati effettuati con 5, 10 e 15 partizioni (fold), data la ridotta dimensione del dataset, i risultati migliori si sono ottenuti con 10 fold.
 
 **NOTA**: dato che stiamo cercando di creare un modello per la predizione del prezzo, il nostro obiettivo è quello di ridurre quanto più possibile lo scarto quadratico.
@@ -298,7 +298,7 @@ Total Number of Instances             1791
 - Risultati del testing:</br>
   | Coefficiente di correlazione | Errore medio assoluto | Errore quadratico medio | Errore assoluto relativo | Errore quadratico relativo |
   |------------------------------|-----------------------|-------------------------|--------------------------|----------------------------|
-  | 0.9267                       | 31.9919               | 86.2286                 | 23.5325%                 | 38.1403                    |
+  | 0.9267                       | 31.9919               | 86.2286                 | 23.5325%                 | 38.1403%                   |
 
 - Visualizzazione dei risultati:</br>
   ![RandomTreeResult](https://imgur.com/vaS6Wt4.png)
@@ -3116,3 +3116,14 @@ Possiamo dire che l'algoritmo M5P ha costruito un ottimo albero e con ottime pre
 ### Scelta dell'algoritmo
 
 Mettiamo a confronto le performance dei vari algoritmi usati
+
+| Algoritmo         | Coefficiente di correlazione | Errore medio assoluto | Errore quadratico medio | Errore assoluto relativo | Errore quadratico relativo |
+|-------------------|------------------------------|-----------------------|-------------------------|--------------------------|----------------------------|
+| Linear Regression | 0.8835                       | 59.5598               | 105.8831                | 43.8108%                 | 46.8338%                   |
+| Random Tree       | 0.9267                       | 31.9919               | 86.2286                 | 23.5325%                 | 38.1403%                   |
+| Random Forest     | 0.9708                       | 21.6589               | 58.0235                 | 15.9318%                 | 25.6647%                   |
+| M5P               | 0.9881                       | 11.5444               | 36.0696                 | 8.4918%                  | 15.9541%                   |
+
+Dato che si è scelto di usare python come linguaggio, purtroppo non possiamo fare affidamento all' `M5P` dato che la sua implementazione in scikit-learn è ancora in fase di developement. Non resta che scegliere il Random Forest.
+
+## Implementazione

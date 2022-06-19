@@ -64,7 +64,7 @@ PCPFiller fornirà delle statistiche sulla qualità del datasat base appena conv
 
 ### Fase di filling
 
-blah blah blah
+@todo blah blah blah
 
 ## Descrizione dell'agente intelligente
 
@@ -123,7 +123,7 @@ Segue una descrizione generale dei dati disponibili per le RAM e l'eventuale uti
 | Modules number | numeric | Quantità di moduli                                                                                  | Strettamente correlata all dimensione e prezzo di un singolo modulo (1x8GB, 2x4GB, 2x16GB etc.)                                                 |
 | Price / GB     | numeric | Prezzo in Euro per un GB                                                                            | Dato derivato da prezzo e dimensione/quantità dei moduli. Potrebbe essere utile ma con il rischio che potrebbe portare a un caso di overfitting |
 | Color          | nominal | Colore                                                                                              | Alcuni colori (es: Gold, Silver) potrebbero essere correlati a prezzo e brand.                                                                  |
-| FW Latency     | numeric | First World Latency, latenza in condizioni ottimali (performance del modulo)                        | Strettamente correlato ad altri parametri                                                                                                       |
+| FW Latency     | numeric | First Word Latency, latenza tempo di accesso (performance del modulo)                               | Strettamente correlato ad altri parametri                                                                                                       |
 | CAS timing     | numeric | Latenza di "Column Access Strobe" (performance del modulo)                                          | Strettamente correlato ad altri parametri                                                                                                       |
 | ECC            | nominal | Error Correction, capacità di correzioni errori (convertita in true/false in fase di preprocessing) | Solitamente la funzionalità di ECC è presente in moduli più pregiati. Quindi correlata ad altri parametri                                       |
 | Price          | numeric | Prezzo in Euro                                                                                      | Decisamente utile                                                                                                                               |
@@ -164,13 +164,283 @@ Lo stesso possiamo dire per gli altri parametri di performance del modulo. Maggi
 Di seguito una overview delle relazioni tra i vari campi</br>
   ![Overview](https://imgur.com/0CwtbBq.png)
 
+Per confermare le osservazioni fatte e per avere una visione più accurata della relazione tra gli attributi, utilizziamo ancora una volta Weka.
+
+#### Correlation Attribute Evaluation
+
+L'algoritmo `CorrelationAttributeEval` valuta il "valore" di un attributo misurando la correlazione di Pearson's tra di esso e l'attributo scelto come classe.
+Si sceglie quindi il prezzo come classe, e come metodo di ricerca si usa il `Ranker`.
+
+L'analisi viene effettuata su tutto il dataset (non vengono usate partizioni)
+
+Risultati:
+| Valore  | Campo              |
+|---------|--------------------|
+| 0.6974  | number_of_modules  |
+| 0.4739  | module_size        |
+| 0.4371  | speed              |
+| 0.3142  | cas_timing         |
+| 0.2913  | price_per_gb       |
+| 0.2878  | module_type        |
+| 0.1201  | brand              |
+| 0.0917  | color              |
+| 0.0208  | error_correction   |
+| -0.3646 | first_word_latency |
+
+<details>
+<summary>Output completo</summary>
+
+```text
+=== Run information ===
+
+Evaluator:    weka.attributeSelection.CorrelationAttributeEval 
+Search:       weka.attributeSelection.Ranker -T -1.7976931348623157E308 -N -1
+Relation:     memory-weka.filters.unsupervised.attribute.Remove-R2
+Instances:    1791
+Attributes:   11
+              brand
+              module_type
+              speed
+              number_of_modules
+              module_size
+              price_per_gb
+              color
+              first_word_latency
+              cas_timing
+              error_correction
+              price
+Evaluation mode:    evaluate on all training data
+
+
+
+=== Attribute Selection on all input data ===
+
+Search Method:
+ Attribute ranking.
+
+Attribute Evaluator (supervised, Class (numeric): 11 price):
+ Correlation Ranking Filter
+Ranked attributes:
+ 0.6974   4 number_of_modules
+ 0.4739   5 module_size
+ 0.4371   3 speed
+ 0.3142   9 cas_timing
+ 0.2913   6 price_per_gb
+ 0.2878   2 module_type
+ 0.1201   1 brand
+ 0.0917   7 color
+ 0.0208  10 error_correction
+-0.3646   8 first_word_latency
+
+Selected attributes: 4,5,3,9,6,2,1,7,10,8 : 10
+
+```
+
+</details>
+
+Come previsto il numero dei moduli, la dimensione e la frequenza sono i parametri che piu impattano il prezzo, seguiti poi dai vari parametri di performance. (NOTA: del campo `first_word_latency`, si dovrebbe prendere il valore assoluto, dato che con l'aumentare della latenza, le performance diminuiscono, e quindi anche il prezzo)
+
+Ripetiamo l'analisi anche con una PCA.
+
+#### Principal Components Analysis
+
+Anche in questo caso si sceglie il prezzo come classe, e come metodo di ricerca si usa il `Ranker`.
+
+L'analisi viene effettuata su tutto il dataset (non vengono usate partizioni).
+
+Risultati:
+
+  ```text
+Ranked attributes:
+ 0.8504    1 -0.442speed-0.436module_type=DDR4-0.423cas_timing+0.408module_type=DDR3+0.279first_word_latency...
+ 0.789     2 0.484error_correction=True+0.369module_size+0.331first_word_latency+0.327brand=Samsung+0.287brand=Crucial...
+ 0.7421    3 -0.558brand=Corsair+0.445price_per_gb+0.36 module_type=DDR2+0.286brand=G.Skill+0.281brand=OCZ...
+ 0.6963    4 -0.494brand=G.Skill+0.491brand=Corsair+0.411price_per_gb+0.289brand=OCZ+0.282module_type=DDR2...
+ 0.652     5 0.412brand=Patriot-0.411brand=G.Skill-0.279number_of_modules+0.265brand=ADATA-0.251error_correction=True...
+ 0.6118    6 -0.498brand=Kingston+0.34 brand=Mushkin+0.313module_type=DDR2+0.307brand=G.Skill-0.269brand=Thermaltake...
+ 0.5753    7 -0.535brand=Crucial+0.529brand=Kingston-0.29brand=Transcend-0.287brand=Klevv+0.24 module_type=DDR2...
+ 0.5403    8 0.684brand=Patriot-0.542brand=Team-0.377brand=Mushkin-0.174brand=ADATA+0.152brand=Crucial...
+ 0.5056    9 -0.486brand=Team+0.426brand=ADATA-0.397brand=Samsung+0.395brand=Crucial-0.316brand=Patriot...
+ 0.4712   10 0.614brand=ADATA-0.347brand=Crucial+0.345brand=Samsung-0.333brand=Team+0.309brand=Thermaltake...
+ 0.4371   11 0.703brand=Thermaltake+0.496brand=Mushkin-0.335brand=ADATA-0.209brand=Team+0.159brand=Gigabyte...
+ 0.4032   12 -0.655brand=Gigabyte+0.576brand=IBM-0.359brand=HP-0.125brand=Transcend-0.117module_size...
+ 0.3695   13 0.63 brand=GeIL+0.399brand=PNY+0.28 brand=Thermaltake-0.26brand=Mushkin-0.239brand=Klevv...
+ 0.3359   14 0.588brand=GeIL-0.583brand=PNY+0.333brand=Gigabyte-0.277brand=HP-0.202brand=Transcend...
+ 0.3024   15 -0.696brand=Klevv+0.494brand=Transcend-0.333brand=PNY-0.194brand=GeIL+0.179brand=Thermaltake...
+ 0.269    16 0.523brand=PNY-0.489brand=HP+0.466brand=Gigabyte+0.336brand=IBM+0.318brand=Transcend...
+ 0.2356   17 0.531brand=HP+0.501brand=IBM-0.478brand=Transcend+0.258brand=Gigabyte-0.258brand=Samsung...
+ 0.2022   18 0.89 brand=Silicon Power-0.339brand=HP-0.198brand=Transcend+0.146brand=V7+0.106brand=Klevv...
+ 0.1688   19 0.918brand=V7+0.19 brand=Klevv+0.19 brand=Gigabyte-0.173brand=Silicon Power+0.161brand=IBM...
+ 0.1387   20 0.413brand=Transcend+0.348brand=Klevv+0.337module_type=DDR2+0.287brand=Kingston-0.276brand=Samsung...
+ 0.1093   21 0.656brand=OCZ-0.499price_per_gb-0.197brand=GeIL+0.191brand=Thermaltake+0.189module_size...
+ 0.0812   22 0.52 brand=Mushkin-0.411module_type=DDR2+0.406brand=OCZ-0.253brand=Thermaltake+0.228brand=Patriot...
+ 0.0577   23 0.649number_of_modules+0.292module_size-0.285brand=Corsair+0.239module_type=DDR2+0.217brand=Patriot...
+ 0.0369   24 0.503error_correction=True+0.425first_word_latency+0.364number_of_modules-0.334brand=Samsung-0.221brand=Crucial...
+  ```
+
+<details>
+<summary>Output completo</summary>
+
+```text
+=== Run information ===
+
+Evaluator:    weka.attributeSelection.PrincipalComponents -R 0.95 -A 5
+Search:       weka.attributeSelection.Ranker -T -1.7976931348623157E308 -N -1
+Relation:     memory-weka.filters.unsupervised.attribute.Remove-R2-weka.filters.unsupervised.attribute.Remove-R7
+Instances:    1791
+Attributes:   10
+              brand
+              module_type
+              speed
+              number_of_modules
+              module_size
+              price_per_gb
+              first_word_latency
+              cas_timing
+              error_correction
+              price
+Evaluation mode:    evaluate on all training data
+
+
+
+=== Attribute Selection on all input data ===
+
+Search Method:
+ Attribute ranking.
+
+Attribute Evaluator (unsupervised):
+ Principal Components Attribute Transformer
+
+Correlation matrix
+  1     -0.1   -0.05  -0.11  -0.02  -0     -0.01  -0.01  -0.08  -0.01  -0.03  -0.01  -0.01  -0.04  -0.02  -0.01  -0.04  -0.02  -0.01  -0      0      0.07  -0.07   0.04  -0.06  -0.04  -0      0      0.07  -0.04  -0.04 
+ -0.1    1     -0.15  -0.37  -0.05  -0.01  -0.02  -0.02  -0.27  -0.03  -0.1   -0.03  -0.04  -0.14  -0.05  -0.02  -0.12  -0.06  -0.03  -0.01  -0.04   0.11  -0.1    0.12   0.24   0.06  -0.02  -0.13   0.09  -0.14   0.21 
+ -0.05  -0.15   1     -0.17  -0.03  -0.01  -0.01  -0.01  -0.13  -0.02  -0.05  -0.01  -0.02  -0.07  -0.02  -0.01  -0.06  -0.03  -0.02  -0.01  -0.02   0.03  -0.03   0.02  -0.1    0.12   0.04   0.07   0.07   0.21  -0.02 
+ -0.11  -0.37  -0.17   1     -0.06  -0.02  -0.03  -0.02  -0.31  -0.04  -0.12  -0.03  -0.04  -0.16  -0.06  -0.02  -0.13  -0.07  -0.04  -0.02  -0.04   0.13  -0.12   0.17   0.14   0.02  -0.01  -0.2    0.09  -0.15   0.09 
+ -0.02  -0.05  -0.03  -0.06   1     -0     -0     -0     -0.05  -0.01  -0.02  -0.01  -0.01  -0.02  -0.01  -0     -0.02  -0.01  -0.01  -0     -0.01  -0.06   0.06  -0.08  -0.04  -0.05  -0.03   0.07  -0.06  -0.02  -0.05 
+ -0     -0.01  -0.01  -0.02  -0      1     -0     -0     -0.01  -0     -0     -0     -0     -0.01  -0     -0     -0     -0     -0     -0     -0      0.02  -0.01   0.02  -0      0.07  -0.01  -0.02   0.01  -0.01   0.02 
+ -0.01  -0.02  -0.01  -0.03  -0     -0      1     -0     -0.02  -0     -0.01  -0     -0     -0.01  -0     -0     -0.01  -0     -0     -0     -0.01  -0.06   0.07  -0.06  -0.04   0      0.02   0.05  -0.05  -0.01  -0.02 
+ -0.01  -0.02  -0.01  -0.02  -0     -0     -0      1     -0.02  -0     -0.01  -0     -0     -0.01  -0     -0     -0.01  -0     -0     -0     -0     -0.05   0.05  -0.05  -0.03   0.03  -0      0.04  -0.04   0.14  -0.01 
+ -0.08  -0.27  -0.13  -0.31  -0.05  -0.01  -0.02  -0.02   1     -0.03  -0.09  -0.03  -0.03  -0.12  -0.04  -0.02  -0.1   -0.05  -0.03  -0.01   0.04  -0.27   0.26  -0.27  -0.15  -0.08   0.02   0.18  -0.24   0.22  -0.14 
+ -0.01  -0.03  -0.02  -0.04  -0.01  -0     -0     -0     -0.03   1     -0.01  -0     -0     -0.01  -0.01  -0     -0.01  -0.01  -0     -0     -0.01  -0.05   0.05  -0      0.01  -0.03   0.04  -0.05  -0.03  -0.01  -0    
+ -0.03  -0.1   -0.05  -0.12  -0.02  -0     -0.01  -0.01  -0.09  -0.01   1     -0.01  -0.01  -0.04  -0.02  -0.01  -0.04  -0.02  -0.01  -0      0.11  -0.15   0.12  -0.18  -0.08  -0.06   0.01   0.16  -0.15  -0     -0.07 
+ -0.01  -0.03  -0.01  -0.03  -0.01  -0     -0     -0     -0.03  -0     -0.01   1     -0     -0.01  -0     -0     -0.01  -0.01  -0     -0      0.17  -0.08   0.04  -0.08   0.01  -0.06   0.16  -0.03  -0.12  -0.01  -0.02 
+ -0.01  -0.04  -0.02  -0.04  -0.01  -0     -0     -0     -0.03  -0     -0.01  -0      1     -0.02  -0.01  -0     -0.01  -0.01  -0     -0     -0.01   0.02  -0.02   0     -0.03  -0     -0.01   0.04   0.04  -0.01  -0.02 
+ -0.04  -0.14  -0.07  -0.16  -0.02  -0.01  -0.01  -0.01  -0.12  -0.01  -0.04  -0.01  -0.02   1     -0.02  -0.01  -0.05  -0.03  -0.01  -0.01   0.03  -0.01   0.01  -0.06  -0.11  -0.08  -0.05   0.1   -0.01  -0.06  -0.12 
+ -0.02  -0.05  -0.02  -0.06  -0.01  -0     -0     -0     -0.04  -0.01  -0.02  -0     -0.01  -0.02   1     -0     -0.02  -0.01  -0.01  -0     -0.01  -0.01   0.01  -0.04  -0.08   0.2   -0.01   0.13   0.04   0.25   0    
+ -0.01  -0.02  -0.01  -0.02  -0     -0     -0     -0     -0.02  -0     -0.01  -0     -0     -0.01  -0      1     -0.01  -0     -0     -0     -0     -0.05   0.05  -0.04  -0.03  -0.02  -0.01   0.04  -0.03  -0.01  -0.02 
+ -0.04  -0.12  -0.06  -0.13  -0.02  -0     -0.01  -0.01  -0.1   -0.01  -0.04  -0.01  -0.01  -0.05  -0.02  -0.01   1     -0.02  -0.01  -0     -0.03   0.09  -0.09   0.07  -0.06  -0.03  -0.01  -0.05   0.08  -0.05  -0.05 
+ -0.02  -0.06  -0.03  -0.07  -0.01  -0     -0     -0     -0.05  -0.01  -0.02  -0.01  -0.01  -0.03  -0.01  -0     -0.02   1     -0.01  -0     -0.01   0.07  -0.07   0.14  -0.02  -0.01  -0     -0.1    0.12  -0.03  -0.02 
+ -0.01  -0.03  -0.02  -0.04  -0.01  -0     -0     -0     -0.03  -0     -0.01  -0     -0     -0.01  -0.01  -0     -0.01  -0.01   1     -0     -0.01  -0.09   0.09  -0.08  -0.05  -0.04   0      0.04  -0.08  -0.01  -0.04 
+ -0     -0.01  -0.01  -0.02  -0     -0     -0     -0     -0.01  -0     -0     -0     -0     -0.01  -0     -0     -0     -0     -0      1     -0      0.02  -0.01  -0.01  -0.02  -0.01  -0.02   0.03   0.02  -0.01  -0.02 
+  0     -0.04  -0.02  -0.04  -0.01  -0     -0.01  -0      0.04  -0.01   0.11   0.17  -0.01   0.03  -0.01  -0     -0.03  -0.01  -0.01  -0      1     -0.19  -0.08  -0.28  -0.08  -0.14   0.23   0.17  -0.33  -0.01  -0.07 
+  0.07   0.11   0.03   0.13  -0.06   0.02  -0.06  -0.05  -0.27  -0.05  -0.15  -0.08   0.02  -0.01  -0.01  -0.05   0.09   0.07  -0.09   0.02  -0.19   1     -0.96   0.81   0.25   0.38  -0.11  -0.36   0.9   -0.16   0.3  
+ -0.07  -0.1   -0.03  -0.12   0.06  -0.01   0.07   0.05   0.26   0.05   0.12   0.04  -0.02   0.01   0.01   0.05  -0.09  -0.07   0.09  -0.01  -0.08  -0.96   1     -0.75  -0.24  -0.35   0.05   0.32  -0.82   0.16  -0.28 
+  0.04   0.12   0.02   0.17  -0.08   0.02  -0.06  -0.05  -0.27  -0     -0.18  -0.08   0     -0.06  -0.04  -0.04   0.07   0.14  -0.08  -0.01  -0.28   0.81  -0.75   1      0.31   0.35   0.07  -0.72   0.86  -0.2    0.44 
+ -0.06   0.24  -0.1    0.14  -0.04  -0     -0.04  -0.03  -0.15   0.01  -0.08   0.01  -0.03  -0.11  -0.08  -0.03  -0.06  -0.02  -0.05  -0.02  -0.08   0.25  -0.24   0.31   1      0.16   0.02  -0.36   0.19  -0.19   0.7  
+ -0.04   0.06   0.12   0.02  -0.05   0.07   0      0.03  -0.08  -0.03  -0.06  -0.06  -0     -0.08   0.2   -0.02  -0.03  -0.01  -0.04  -0.01  -0.14   0.38  -0.35   0.35   0.16   1     -0.22  -0.11   0.43   0.18   0.47 
+ -0     -0.02   0.04  -0.01  -0.03  -0.01   0.02  -0      0.02   0.04   0.01   0.16  -0.01  -0.05  -0.01  -0.01  -0.01  -0      0     -0.02   0.23  -0.11   0.05   0.07   0.02  -0.22   1     -0.17  -0.1    0.1    0.29 
+  0     -0.13   0.07  -0.2    0.07  -0.02   0.05   0.04   0.18  -0.05   0.16  -0.03   0.04   0.1    0.13   0.04  -0.05  -0.1    0.04   0.03   0.17  -0.36   0.32  -0.72  -0.36  -0.11  -0.17   1     -0.3    0.31  -0.36 
+  0.07   0.09   0.07   0.09  -0.06   0.01  -0.05  -0.04  -0.24  -0.03  -0.15  -0.12   0.04  -0.01   0.04  -0.03   0.08   0.12  -0.08   0.02  -0.33   0.9   -0.82   0.86   0.19   0.43  -0.1   -0.3    1     -0.07   0.31 
+ -0.04  -0.14   0.21  -0.15  -0.02  -0.01  -0.01   0.14   0.22  -0.01  -0     -0.01  -0.01  -0.06   0.25  -0.01  -0.05  -0.03  -0.01  -0.01  -0.01  -0.16   0.16  -0.2   -0.19   0.18   0.1    0.31  -0.07   1     -0.02 
+ -0.04   0.21  -0.02   0.09  -0.05   0.02  -0.02  -0.01  -0.14  -0     -0.07  -0.02  -0.02  -0.12   0     -0.02  -0.05  -0.02  -0.04  -0.02  -0.07   0.3   -0.28   0.44   0.7    0.47   0.29  -0.36   0.31  -0.02   1    
+
+
+eigenvalue proportion cumulative
+  4.74991   0.15322   0.15322 0.427speed+0.411module_type=DDR4+0.4  cas_timing-0.385module_type=DDR3-0.278first_word_latency...
+  1.89373   0.06109   0.21431 -0.381number_of_modules+0.333error_correction=True+0.31 first_word_latency-0.302price_per_gb-0.283price...
+  1.67544   0.05405   0.26836 0.453error_correction=True+0.438price+0.374module_size+0.269brand=Samsung+0.247number_of_modules...
+  1.40542   0.04534   0.31369 -0.501price_per_gb+0.494brand=Corsair-0.383module_type=DDR2-0.314brand=OCZ-0.242brand=G.Skill...
+  1.35373   0.04367   0.35736 0.657brand=G.Skill-0.44brand=Corsair-0.33module_type=DDR2-0.207brand=OCZ-0.195price_per_gb...
+  1.21237   0.03911   0.39647 0.513brand=Kingston-0.38brand=Mushkin-0.321module_type=DDR2-0.276brand=G.Skill-0.271first_word_latency...
+  1.09432   0.0353    0.43177 -0.538brand=Crucial+0.536brand=Kingston-0.286brand=Transcend-0.286brand=Klevv+0.235module_type=DDR2...
+  1.0499    0.03387   0.46564 0.689brand=Patriot-0.538brand=Team-0.376brand=Mushkin-0.172brand=ADATA+0.152brand=Crucial...
+  1.04148   0.0336    0.49924 -0.49brand=Team+0.424brand=ADATA-0.394brand=Samsung+0.394brand=Crucial-0.32brand=Patriot...
+  1.03247   0.03331   0.53254 0.602brand=ADATA+0.35 brand=Samsung-0.347brand=Crucial-0.341brand=Team+0.317brand=Thermaltake...
+  1.0251    0.03307   0.56561 -0.706brand=Thermaltake-0.488brand=Mushkin+0.352brand=ADATA+0.214brand=Team-0.146brand=Gigabyte...
+  1.01512   0.03275   0.59835 -0.644brand=Gigabyte+0.55 brand=IBM-0.361brand=HP-0.178brand=Klevv+0.15 brand=Thermaltake...
+  1.01208   0.03265   0.631   -0.599brand=GeIL-0.354brand=PNY+0.298brand=Mushkin-0.262brand=OCZ+0.254brand=IBM...
+  1.00812   0.03252   0.66352 -0.621brand=PNY+0.54 brand=GeIL+0.368brand=Gigabyte-0.273brand=HP-0.163brand=Transcend...
+  1.00607   0.03245   0.69598 0.638brand=Klevv-0.516brand=Transcend+0.32 brand=PNY+0.315brand=GeIL-0.18brand=Silicon Power...
+  1.00285   0.03235   0.72833 0.521brand=PNY-0.516brand=HP+0.459brand=Gigabyte+0.321brand=Transcend+0.308brand=IBM...
+  1.00253   0.03234   0.76067 0.524brand=IBM+0.515brand=HP-0.436brand=Transcend+0.27 brand=Gigabyte-0.269brand=Samsung...
+  1.00165   0.03231   0.79298 0.879brand=Silicon Power-0.31brand=HP-0.237brand=Transcend+0.174brand=V7+0.138brand=Klevv...
+  1.00095   0.03229   0.82527 0.904brand=V7-0.214brand=Silicon Power+0.205brand=Klevv+0.191brand=Gigabyte+0.16 brand=IBM...
+  0.94118   0.03036   0.85563 -0.399brand=Patriot+0.368brand=OCZ-0.325brand=GeIL+0.316brand=Corsair-0.288price...
+  0.90108   0.02907   0.88469 0.397brand=Klevv+0.36 brand=Transcend+0.347module_type=DDR2-0.286brand=Samsung+0.263brand=Kingston...
+  0.86703   0.02797   0.91266 0.666brand=OCZ-0.31price_per_gb-0.268module_type=DDR2-0.262brand=Corsair+0.231module_size...
+  0.80969   0.02612   0.93878 -0.397brand=Mushkin+0.374brand=Thermaltake+0.349module_type=DDR2+0.31 brand=Team+0.281number_of_modules...
+  0.63252   0.0204    0.95919 0.475first_word_latency+0.451error_correction=True-0.366brand=Samsung-0.26brand=Crucial-0.241module_type=DDR2...
+
+Eigenvectors
+ V1  V2  V3  V4  V5  V6  V7  V8  V9  V10  V11  V12  V13  V14  V15  V16  V17  V18  V19  V20  V21  V22  V23  V24 
+ 0.0181  0.0728 -0.1417 -0.0748 -0.1513  0.0395  0.0943 -0.1719  0.4236  0.6023  0.3519 -0.1032  0.2293  0.0877 -0.0162 -0.0098  0.024  -0.0059 -0.0329 -0.1101 -0.2083  0.167   0.2018  0.0219 brand=ADATA
+ 0.0993 -0.2096  0.1706  0.4941 -0.4403 -0.0545 -0.0519  0.0066  0.0024  0.023   0.0291  0.1023 -0.0318 -0.034  -0.0692 -0.013  -0.0022  0.008   0.0071  0.3157 -0.0308 -0.2615 -0.1102  0.1382 brand=Corsair
+ 0.0031  0.2406  0.1741 -0.2166 -0.0874  0.0203 -0.5376  0.1523  0.3941 -0.3473  0.0041 -0.0747  0.0179  0.0505 -0.0535 -0.0045 -0.0132  0.011  -0.0096  0.1435 -0.0792  0.0669  0.1725 -0.2599 brand=Crucial
+ 0.101  -0.1641 -0.1849 -0.2415  0.657  -0.2757  0.029   0.0071  0.0176 -0.0083  0.0371  0.0684 -0.0182 -0.0279 -0.0386 -0.0128 -0.0009  0.0041  0.0024  0.1672 -0.0059 -0.142   0.0358  0.1942 brand=G.Skill
+-0.0409  0.0113 -0.0549  0.0982  0.0179 -0.0623 -0.1463 -0.1012  0.0907  0.0225  0.1394  0.1206 -0.5989  0.5398  0.3146 -0.0102 -0.0013 -0.0677 -0.0409 -0.3247  0.1304 -0.046  -0.097  -0.035  brand=GeIL
+ 0.0132  0.0222  0.0333  0.0162  0.0193 -0.042   0.049  -0.0247 -0.1169  0.0282 -0.1458 -0.6437 -0.0007  0.3679 -0.1216  0.4591  0.2695  0.0988  0.1913  0.0659 -0.1326 -0.159  -0.0314  0.0644 brand=Gigabyte
+-0.0325 -0.012   0.0146  0.0274  0.0251 -0.0242 -0.1866 -0.0472 -0.0779  0.1294  0.0688 -0.3611 -0.1321 -0.2725 -0.0543 -0.5159  0.5149 -0.3095  0.0813 -0.0612  0.2288 -0.0125 -0.0691 -0.0123 brand=HP
+-0.0285  0.0588  0.1223 -0.0192  0.0575 -0.0005 -0.1522 -0      -0.1741  0.2     0.0849  0.5495  0.2544  0.1157 -0.0741  0.3076  0.5236 -0.0232  0.1603 -0.0306  0.183  -0.0247 -0.054  -0.1733 brand=IBM
+-0.169   0.0935  0.1759 -0.0277  0.0743  0.5126  0.5355  0.0464  0.0825 -0.1096 -0.0318 -0.0678 -0.0064 -0.006   0.001  -0.0092 -0.0069 -0.0045 -0.0026 -0.1135  0.2634  0.0521 -0.1402 -0.1899 brand=Kingston
+-0.012  -0.0672  0.0009 -0.0196  0.0211  0.1552 -0.2859  0.0287 -0.1419  0.2213 -0.044  -0.1776  0.2532 -0.0466  0.6384  0.0518 -0.2369  0.1377  0.2048  0.1417  0.3966  0.0098  0.0559  0.0779 brand=Klevv
+-0.0943 -0.0155 -0.0142 -0.0226 -0.1081 -0.3795 -0.0099 -0.3763  0.1289 -0.0723 -0.4882  0.0041  0.2981 -0.014   0.1195 -0.0189 -0.014  -0.0494 -0.0223 -0.2685 -0.0305  0.2154 -0.3966 -0.0579 brand=Mushkin
+-0.0429 -0.1712  0.0288 -0.3135 -0.2066 -0.0846  0.0307  0.0647 -0.1643  0.0654  0.1319 -0.0002 -0.2617  0.0662 -0.1027  0.0571  0.01    0.0702  0.0262  0.3678  0.085   0.6655 -0.2501  0.1287 brand=OCZ
+ 0.0026  0.0518 -0.0428  0.001  -0.0438 -0.0351  0.0386 -0.0507  0.0918 -0.0107  0.013  -0.0133 -0.3538 -0.6212  0.3198  0.5206  0.1996 -0.0342 -0.1207 -0.0641 -0.1314  0.0404  0.0672 -0.0487 brand=PNY
+-0.0372  0.0978 -0.2137  0.0348 -0.1535 -0.1583  0.0028  0.6892 -0.3203 -0.0279  0.0503 -0.0496  0.1528  0.0102  0.0702 -0.0177  0.0094 -0.0271 -0.0269 -0.3988 -0.1564  0.1347  0.0235  0.011  brand=Patriot
+-0.0123  0.2449  0.2685 -0.0561  0.0513 -0.2185  0.06   -0.0985 -0.3943  0.35    0.0442 -0.018  -0.1465 -0.0592  0.065  -0.1348 -0.2687  0.0165 -0.072   0.1137 -0.2865 -0.1634 -0.0715 -0.3656 brand=Samsung
+-0.0265  0.0015 -0.0156  0.0508  0.0253 -0.0163 -0.1295 -0.0389 -0.0058  0.0742  0.0118 -0.0441 -0.0847 -0.1265 -0.1804 -0.1167  0.1199  0.8788 -0.2139 -0.1952  0.1515 -0.0261 -0.0513 -0.014  brand=Silicon Power
+ 0.0313  0.0787 -0.1716 -0.0671 -0.1353  0.1942 -0.0902 -0.538  -0.4905 -0.3408  0.2143 -0.0026  0.0926  0.0256 -0.0117 -0.0201  0.0149  0.0015 -0.0245 -0.1146 -0.1135  0.1049  0.31    0.0765 brand=Team
+ 0.0485  0.0416 -0.1033 -0.0808 -0.0716  0.2514 -0.0826  0.0368 -0.0791  0.3174 -0.7056  0.1498 -0.248   0.0482 -0.121  -0.0773  0.0427 -0.0367 -0.0208  0.0173 -0.0592  0.0746  0.3741  0.1245 brand=Thermaltake
+-0.0475 -0.0287 -0.0219  0.0621  0.0429  0.0181 -0.2861 -0.0523 -0.065   0.1705  0.0695 -0.0925 -0.059  -0.1633 -0.5156  0.3212 -0.4358 -0.2368 -0.0068 -0.268   0.3599 -0.0077 -0.074   0.0089 brand=Transcend
+-0.0006  0.0402 -0.0332  0.0133 -0.0247 -0.0468  0.0612 -0.0345  0.0809 -0.0454  0.0223  0.0986 -0.1714 -0.1541 -0.0802 -0.0893 -0.1104  0.1745  0.9043 -0.1391 -0.1342  0.0272  0.0215 -0.0416 brand=V7
+-0.1198 -0.153   0.0002 -0.3829 -0.3301 -0.3211  0.2349  0.0048  0.0003 -0.0308 -0.037   0.0014 -0.0198  0.0299 -0.0271  0.0118 -0.0001  0.012   0.0028  0.0247  0.3466 -0.2684  0.349  -0.241  module_type=DDR2
+ 0.4112  0.1935 -0.118  -0.0546 -0.0964 -0.0402  0.0913 -0.0059  0.026  -0.0306  0.0263  0.0171 -0.0056 -0.0003  0.0017 -0      -0.0021 -0.0063  0.0037  0.0031  0.1393 -0.0466 -0.0909  0.1051 module_type=DDR4
+-0.3852 -0.1549  0.1199  0.1598  0.1879  0.1284 -0.1568  0.0047 -0.0265  0.0395 -0.0166 -0.0178  0.0111 -0.0078  0.0057 -0.0032  0.0022  0.0031 -0.0045 -0.0099 -0.236   0.1204 -0.0027 -0.0411 module_type=DDR3
+ 0.4265  0.0103 -0.0611 -0.0906 -0.003   0.163  -0.051   0.0143 -0.0132  0.0281 -0.0428  0.0064  0.0049 -0.005  -0.0013 -0.0031  0.0022  0.0019 -0.0032 -0.0338 -0.0432 -0.0365 -0.1822 -0.1238 speed
+ 0.2209 -0.3809  0.2472  0.1665  0.0861 -0.0745  0.084   0.0184  0.0366 -0.0522  0.014   0.0173  0.0243  0.0197  0.0357  0.0018 -0.0037 -0.0031 -0.0066 -0.145   0.0074  0.1942  0.2808  0.0884 number_of_modules
+ 0.2216  0.245   0.3742  0.0846  0.1129 -0.1789  0.0496 -0.0154 -0.0603  0.0101 -0.0307 -0.1134 -0.0088  0.0267 -0.0133  0.0084  0.0061  0.0017  0.0009 -0.0105  0.1387  0.231   0.145  -0.1843 module_size
+-0.0119 -0.3025  0.1903 -0.5005 -0.195   0.165  -0.1134  0.0162 -0.0205  0.0358  0.0433 -0.0081 -0.0136 -0.0568  0.0341 -0.0216 -0.0018 -0.0129 -0.0032 -0.2359 -0.1979 -0.31   -0.2359  0.1656 price_per_gb
+-0.278   0.3103  0.0666  0.078  -0.0808 -0.271   0.1025 -0.017   0.0633 -0.0391  0.0312  0.0141 -0.0274 -0.0368  0.0164 -0.0151 -0.0013 -0.0021 -0.0008 -0.0452  0.1475 -0.0319  0.1567  0.4753 first_word_latency
+ 0.4002  0.2597 -0.0559 -0.022  -0.0472  0.0408  0.0144  0.0047  0.0225  0.0094 -0.0131  0.0121 -0.0112 -0.0312  0.0176 -0.0076 -0.0052  0.005  -0.0014 -0.0394  0.0485 -0.0095 -0.1471  0.1692 cas_timing
+-0.1075  0.3331  0.4527 -0.1913  0.0439  0.0789 -0.0243  0.0169 -0.0234  0.0232  0.016   0.0973  0.0258  0.0044  0.0042  0.0031  0.0013 -0.002  -0.0002 -0.0272 -0.0459 -0.0685 -0.0591  0.4515 error_correction=True
+ 0.2606 -0.2832  0.4377 -0.0106  0.0424 -0.0565  0.0169  0.0035 -0.0035 -0.009   0.0116 -0.0434  0.0196 -0.0094  0.0316 -0.0037  0.0056 -0.0069 -0.0059 -0.2882 -0.0401  0.1062  0.1791  0.0656 price
+
+Ranked attributes:
+ 0.8468    1 0.427speed+0.411module_type=DDR4+0.4  cas_timing-0.385module_type=DDR3-0.278first_word_latency...
+ 0.7857    2 -0.381number_of_modules+0.333error_correction=True+0.31 first_word_latency-0.302price_per_gb-0.283price...
+ 0.7316    3 0.453error_correction=True+0.438price+0.374module_size+0.269brand=Samsung+0.247number_of_modules...
+ 0.6863    4 -0.501price_per_gb+0.494brand=Corsair-0.383module_type=DDR2-0.314brand=OCZ-0.242brand=G.Skill...
+ 0.6426    5 0.657brand=G.Skill-0.44brand=Corsair-0.33module_type=DDR2-0.207brand=OCZ-0.195price_per_gb...
+ 0.6035    6 0.513brand=Kingston-0.38brand=Mushkin-0.321module_type=DDR2-0.276brand=G.Skill-0.271first_word_latency...
+ 0.5682    7 -0.538brand=Crucial+0.536brand=Kingston-0.286brand=Transcend-0.286brand=Klevv+0.235module_type=DDR2...
+ 0.5344    8 0.689brand=Patriot-0.538brand=Team-0.376brand=Mushkin-0.172brand=ADATA+0.152brand=Crucial...
+ 0.5008    9 -0.49brand=Team+0.424brand=ADATA-0.394brand=Samsung+0.394brand=Crucial-0.32brand=Patriot...
+ 0.4675   10 0.602brand=ADATA+0.35 brand=Samsung-0.347brand=Crucial-0.341brand=Team+0.317brand=Thermaltake...
+ 0.4344   11 -0.706brand=Thermaltake-0.488brand=Mushkin+0.352brand=ADATA+0.214brand=Team-0.146brand=Gigabyte...
+ 0.4016   12 -0.644brand=Gigabyte+0.55 brand=IBM-0.361brand=HP-0.178brand=Klevv+0.15 brand=Thermaltake...
+ 0.369    13 -0.599brand=GeIL-0.354brand=PNY+0.298brand=Mushkin-0.262brand=OCZ+0.254brand=IBM...
+ 0.3365   14 -0.621brand=PNY+0.54 brand=GeIL+0.368brand=Gigabyte-0.273brand=HP-0.163brand=Transcend...
+ 0.304    15 0.638brand=Klevv-0.516brand=Transcend+0.32 brand=PNY+0.315brand=GeIL-0.18brand=Silicon Power...
+ 0.2717   16 0.521brand=PNY-0.516brand=HP+0.459brand=Gigabyte+0.321brand=Transcend+0.308brand=IBM...
+ 0.2393   17 0.524brand=IBM+0.515brand=HP-0.436brand=Transcend+0.27 brand=Gigabyte-0.269brand=Samsung...
+ 0.207    18 0.879brand=Silicon Power-0.31brand=HP-0.237brand=Transcend+0.174brand=V7+0.138brand=Klevv...
+ 0.1747   19 0.904brand=V7-0.214brand=Silicon Power+0.205brand=Klevv+0.191brand=Gigabyte+0.16 brand=IBM...
+ 0.1444   20 -0.399brand=Patriot+0.368brand=OCZ-0.325brand=GeIL+0.316brand=Corsair-0.288price...
+ 0.1153   21 0.397brand=Klevv+0.36 brand=Transcend+0.347module_type=DDR2-0.286brand=Samsung+0.263brand=Kingston...
+ 0.0873   22 0.666brand=OCZ-0.31price_per_gb-0.268module_type=DDR2-0.262brand=Corsair+0.231module_size...
+ 0.0612   23 -0.397brand=Mushkin+0.374brand=Thermaltake+0.349module_type=DDR2+0.31 brand=Team+0.281number_of_modules...
+ 0.0408   24 0.475first_word_latency+0.451error_correction=True-0.366brand=Samsung-0.26brand=Crucial-0.241module_type=DDR2...
+
+Selected attributes: 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24 : 24
+```
+
+</details>
+
+Nonostante il colore potrebbe essere parzialmente utile per la previsione del prezzo, in seguito alle precedenti osservazioni (e futuri test di regressione), si è deciso di rimuoverlo perchè comportava solamente un incremento di complessità per il nostro modello, senza apportare netti benefici.
+
 ### Processing dei dati
 
-Come menzionato prima, con PCPFiller siamo principalmente interessati al prezzo (e alla predizione di esso), quindi si è deciso di ignorare l'attributo `Model` e anche il `Color`;
-nonostante il colore potrebbe essere parzialmente utile per la previsione del prezzo, in seguito ad una analisi dei dati (e futuri test di regressione), si è deciso di rimuoverlo perchè
-comportava solamente un incremento di complessità per il nostro modello, senza apportare netti benefici.
-
-Il prezzo è un valore numerico continuo, possiamo quindi scegliere vari algoritmi specializziati per regressione con valori numerici:
+Il prezzo è un valore continuo, possiamo quindi scegliere vari algoritmi specializziati per regressione con valori numerici:
 
 - LinearRegression
 - Alberi:
@@ -178,9 +448,7 @@ Il prezzo è un valore numerico continuo, possiamo quindi scegliere vari algorit
   - RandomForest
   - M5P
 
-Per quanto riguarda il testing, data la ridotta dimensione del dataset, il testing con un precentage-split non produceva buoni risultati (anche con seed diversi), a meno che non si alzava la percentuale di split, con il rischio però di overfitting.
-
-Creare un dataset specificatamente per il testing era fuori discussione.
+Per quanto riguarda il testing, creare un dataset specificatamente per esso era fuori discussione.
 
 Si è quindi optato per una k-fold cross-validation.
 I test sono stati effettuati con 5, 10 e 15 partizioni (fold), data la ridotta dimensione del dataset, i risultati migliori si sono ottenuti con 10 fold.
@@ -2556,6 +2824,8 @@ Possiamo fare ancora di meglio?
 
 #### M5P
 
+> L'algoritmo M5P combina un convenzionale albero decisionale con la possibilità di una funzione di regressione lineare alle foglie.
+
 L'algoritmo ha presentato risultati migliori se si effettuava il pruning. I risultati seguenti sono con pruning.
 
 - Albero risultante:</br>
@@ -2665,433 +2935,433 @@ number_of_modules >  2.5 :
 
 LM num: 1
 price = 
-	0.1488 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0041 * speed 
-	+ 4.7795 * number_of_modules 
-	+ 5.689 * module_size 
-	+ 1.0836 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 19.531
+ 0.1488 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0041 * speed 
+ + 4.7795 * number_of_modules 
+ + 5.689 * module_size 
+ + 1.0836 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 19.531
 
 LM num: 2
 price = 
-	0.1488 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0041 * speed 
-	+ 3.9104 * number_of_modules 
-	+ 16.2681 * module_size 
-	+ 8.611 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 87.8072
+ 0.1488 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0041 * speed 
+ + 3.9104 * number_of_modules 
+ + 16.2681 * module_size 
+ + 8.611 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 87.8072
 
 LM num: 3
 price = 
-	0.1488 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0041 * speed 
-	+ 3.9104 * number_of_modules 
-	+ 1.2156 * module_size 
-	+ 15.699 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 26.7795
+ 0.1488 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0041 * speed 
+ + 3.9104 * number_of_modules 
+ + 1.2156 * module_size 
+ + 15.699 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 26.7795
 
 LM num: 4
 price = 
-	0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.005 * speed 
-	+ 74.4974 * number_of_modules 
-	+ 1.6869 * module_size 
-	+ 24.6292 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 154.8069
+ 0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.005 * speed 
+ + 74.4974 * number_of_modules 
+ + 1.6869 * module_size 
+ + 24.6292 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 154.8069
 
 LM num: 5
 price = 
-	0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.005 * speed 
-	+ 113.6714 * number_of_modules 
-	+ 2.7819 * module_size 
-	+ 43.6769 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 247.4403
+ 0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.005 * speed 
+ + 113.6714 * number_of_modules 
+ + 2.7819 * module_size 
+ + 43.6769 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 247.4403
 
 LM num: 6
 price = 
-	0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0094 * speed 
-	+ 38.7671 * number_of_modules 
-	+ 4.7815 * module_size 
-	+ 20.8216 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 174.6024
+ 0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0094 * speed 
+ + 38.7671 * number_of_modules 
+ + 4.7815 * module_size 
+ + 20.8216 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 174.6024
 
 LM num: 7
 price = 
-	-20.912 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0415 * speed 
-	+ 38.7671 * number_of_modules 
-	+ 5.9852 * module_size 
-	+ 33.0941 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 316.996
+ -20.912 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0415 * speed 
+ + 38.7671 * number_of_modules 
+ + 5.9852 * module_size 
+ + 33.0941 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 316.996
 
 LM num: 8
 price = 
-	-20.3311 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0547 * speed 
-	+ 38.7671 * number_of_modules 
-	+ 5.9852 * module_size 
-	+ 30.5237 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 319.5833
+ -20.3311 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0547 * speed 
+ + 38.7671 * number_of_modules 
+ + 5.9852 * module_size 
+ + 30.5237 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 319.5833
 
 LM num: 9
 price = 
-	-20.912 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0562 * speed 
-	+ 38.7671 * number_of_modules 
-	+ 5.9852 * module_size 
-	+ 30.5237 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 320.2058
+ -20.912 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0562 * speed 
+ + 38.7671 * number_of_modules 
+ + 5.9852 * module_size 
+ + 30.5237 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 320.2058
 
 LM num: 10
 price = 
-	0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0066 * speed 
-	+ 27.0611 * number_of_modules 
-	+ 6.6457 * module_size 
-	+ 31.7974 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 178.8676
+ 0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0066 * speed 
+ + 27.0611 * number_of_modules 
+ + 6.6457 * module_size 
+ + 31.7974 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 178.8676
 
 LM num: 11
 price = 
-	0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0066 * speed 
-	+ 27.0611 * number_of_modules 
-	+ 7.385 * module_size 
-	+ 32.7385 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 197.1231
+ 0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0066 * speed 
+ + 27.0611 * number_of_modules 
+ + 7.385 * module_size 
+ + 32.7385 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 197.1231
 
 LM num: 12
 price = 
-	0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0066 * speed 
-	+ 27.0611 * number_of_modules 
-	+ 8.811 * module_size 
-	+ 40.888 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 228.3235
+ 0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0066 * speed 
+ + 27.0611 * number_of_modules 
+ + 8.811 * module_size 
+ + 40.888 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 228.3235
 
 LM num: 13
 price = 
-	0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 0.2694 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0066 * speed 
-	+ 27.0611 * number_of_modules 
-	+ 6.2443 * module_size 
-	+ 30.6004 * price_per_gb 
-	+ 0.7543 * first_word_latency 
-	- 0.528 * cas_timing 
-	- 164.8208
+ 0.2378 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 0.2694 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0066 * speed 
+ + 27.0611 * number_of_modules 
+ + 6.2443 * module_size 
+ + 30.6004 * price_per_gb 
+ + 0.7543 * first_word_latency 
+ - 0.528 * cas_timing 
+ - 164.8208
 
 LM num: 14
 price = 
-	0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 4.1161 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0216 * speed 
-	+ 42.4659 * number_of_modules 
-	+ 24.9761 * module_size 
-	+ 4.96 * price_per_gb 
-	+ 3.7962 * first_word_latency 
-	- 2.9577 * cas_timing 
-	- 197.032
+ 0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 4.1161 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0216 * speed 
+ + 42.4659 * number_of_modules 
+ + 24.9761 * module_size 
+ + 4.96 * price_per_gb 
+ + 3.7962 * first_word_latency 
+ - 2.9577 * cas_timing 
+ - 197.032
 
 LM num: 15
 price = 
-	0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 4.1161 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0216 * speed 
-	+ 39.6718 * number_of_modules 
-	+ 9.5141 * module_size 
-	+ 6.0183 * price_per_gb 
-	+ 3.7962 * first_word_latency 
-	- 2.9577 * cas_timing 
-	- 162.0718
+ 0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 4.1161 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0216 * speed 
+ + 39.6718 * number_of_modules 
+ + 9.5141 * module_size 
+ + 6.0183 * price_per_gb 
+ + 3.7962 * first_word_latency 
+ - 2.9577 * cas_timing 
+ - 162.0718
 
 LM num: 16
 price = 
-	0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 4.1161 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0216 * speed 
-	+ 35.2397 * number_of_modules 
-	+ 9.5141 * module_size 
-	+ 7.4409 * price_per_gb 
-	+ 3.7962 * first_word_latency 
-	- 2.9577 * cas_timing 
-	- 155.0012
+ 0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 4.1161 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0216 * speed 
+ + 35.2397 * number_of_modules 
+ + 9.5141 * module_size 
+ + 7.4409 * price_per_gb 
+ + 3.7962 * first_word_latency 
+ - 2.9577 * cas_timing 
+ - 155.0012
 
 LM num: 17
 price = 
-	0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 4.1161 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0216 * speed 
-	+ 66.1785 * number_of_modules 
-	+ 20.2228 * module_size 
-	+ 6.1677 * price_per_gb 
-	+ 3.7962 * first_word_latency 
-	- 2.9577 * cas_timing 
-	- 252.2435
+ 0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 4.1161 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0216 * speed 
+ + 66.1785 * number_of_modules 
+ + 20.2228 * module_size 
+ + 6.1677 * price_per_gb 
+ + 3.7962 * first_word_latency 
+ - 2.9577 * cas_timing 
+ - 252.2435
 
 LM num: 18
 price = 
-	0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 4.1161 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0216 * speed 
-	+ 85.7293 * number_of_modules 
-	+ 19.6053 * module_size 
-	+ 7.8766 * price_per_gb 
-	+ 3.7962 * first_word_latency 
-	- 2.9577 * cas_timing 
-	- 305.8893
+ 0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 4.1161 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0216 * speed 
+ + 85.7293 * number_of_modules 
+ + 19.6053 * module_size 
+ + 7.8766 * price_per_gb 
+ + 3.7962 * first_word_latency 
+ - 2.9577 * cas_timing 
+ - 305.8893
 
 LM num: 19
 price = 
-	0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 5.6568 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0168 * speed 
-	+ 74.4671 * number_of_modules 
-	+ 5.9021 * module_size 
-	+ 11.952 * price_per_gb 
-	+ 2.6849 * first_word_latency 
-	- 2.1759 * cas_timing 
-	- 226.8823
+ 0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 5.6568 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0168 * speed 
+ + 74.4671 * number_of_modules 
+ + 5.9021 * module_size 
+ + 11.952 * price_per_gb 
+ + 2.6849 * first_word_latency 
+ - 2.1759 * cas_timing 
+ - 226.8823
 
 LM num: 20
 price = 
-	0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 5.6568 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0168 * speed 
-	+ 53.0781 * number_of_modules 
-	+ 5.9021 * module_size 
-	+ 15.1838 * price_per_gb 
-	+ 2.6849 * first_word_latency 
-	- 2.1759 * cas_timing 
-	- 187.4139
+ 0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 5.6568 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0168 * speed 
+ + 53.0781 * number_of_modules 
+ + 5.9021 * module_size 
+ + 15.1838 * price_per_gb 
+ + 2.6849 * first_word_latency 
+ - 2.1759 * cas_timing 
+ - 187.4139
 
 LM num: 21
 price = 
-	0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 7.0442 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0168 * speed 
-	+ 189.0597 * number_of_modules 
-	+ 17.2787 * module_size 
-	+ 21.1545 * price_per_gb 
-	+ 2.6849 * first_word_latency 
-	- 2.1759 * cas_timing 
-	- 580.9767
+ 0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 7.0442 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0168 * speed 
+ + 189.0597 * number_of_modules 
+ + 17.2787 * module_size 
+ + 21.1545 * price_per_gb 
+ + 2.6849 * first_word_latency 
+ - 2.1759 * cas_timing 
+ - 580.9767
 
 LM num: 22
 price = 
-	0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
-	+ 6.6107 * brand=Corsair,Gigabyte 
-	- 0.6963 * module_type=DDR4 
-	+ 0.0138 * speed 
-	+ 174.4256 * number_of_modules 
-	+ 24.8485 * module_size 
-	+ 14.8361 * price_per_gb 
-	+ 1.5947 * first_word_latency 
-	- 1.4981 * cas_timing 
-	- 560.1475
+ 0.3344 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte 
+ + 6.6107 * brand=Corsair,Gigabyte 
+ - 0.6963 * module_type=DDR4 
+ + 0.0138 * speed 
+ + 174.4256 * number_of_modules 
+ + 24.8485 * module_size 
+ + 14.8361 * price_per_gb 
+ + 1.5947 * first_word_latency 
+ - 1.4981 * cas_timing 
+ - 560.1475
 
 LM num: 23
 price = 
-	9.0102 * brand=Corsair,Gigabyte 
-	- 2.6671 * module_type=DDR4 
-	+ 0.082 * speed 
-	+ 55.3806 * number_of_modules 
-	+ 27.6585 * module_size 
-	+ 28.0194 * price_per_gb 
-	+ 19.6662 * first_word_latency 
-	- 12.6186 * cas_timing 
-	- 669.1195
+ 9.0102 * brand=Corsair,Gigabyte 
+ - 2.6671 * module_type=DDR4 
+ + 0.082 * speed 
+ + 55.3806 * number_of_modules 
+ + 27.6585 * module_size 
+ + 28.0194 * price_per_gb 
+ + 19.6662 * first_word_latency 
+ - 12.6186 * cas_timing 
+ - 669.1195
 
 LM num: 24
 price = 
-	10.7688 * brand=Corsair,Gigabyte 
-	- 2.6671 * module_type=DDR4 
-	+ 0.1416 * speed 
-	+ 46.5465 * number_of_modules 
-	+ 39.51 * module_size 
-	+ 13.1701 * price_per_gb 
-	+ 35.953 * first_word_latency 
-	- 21.8778 * cas_timing 
-	- 793.8814
+ 10.7688 * brand=Corsair,Gigabyte 
+ - 2.6671 * module_type=DDR4 
+ + 0.1416 * speed 
+ + 46.5465 * number_of_modules 
+ + 39.51 * module_size 
+ + 13.1701 * price_per_gb 
+ + 35.953 * first_word_latency 
+ - 21.8778 * cas_timing 
+ - 793.8814
 
 LM num: 25
 price = 
-	8.5443 * brand=Corsair,Gigabyte 
-	- 2.6671 * module_type=DDR4 
-	+ 0.1441 * speed 
-	+ 46.5465 * number_of_modules 
-	+ 32.1377 * module_size 
-	+ 15.8718 * price_per_gb 
-	+ 35.953 * first_word_latency 
-	- 22.4966 * cas_timing 
-	- 763.0183
+ 8.5443 * brand=Corsair,Gigabyte 
+ - 2.6671 * module_type=DDR4 
+ + 0.1441 * speed 
+ + 46.5465 * number_of_modules 
+ + 32.1377 * module_size 
+ + 15.8718 * price_per_gb 
+ + 35.953 * first_word_latency 
+ - 22.4966 * cas_timing 
+ - 763.0183
 
 LM num: 26
 price = 
-	4.413 * brand=Corsair,Gigabyte 
-	- 2.6671 * module_type=DDR4 
-	+ 0.1265 * speed 
-	+ 53.1828 * number_of_modules 
-	+ 14.324 * module_size 
-	+ 28.9225 * price_per_gb 
-	+ 27.633 * first_word_latency 
-	- 20.127 * cas_timing 
-	- 657.6971
+ 4.413 * brand=Corsair,Gigabyte 
+ - 2.6671 * module_type=DDR4 
+ + 0.1265 * speed 
+ + 53.1828 * number_of_modules 
+ + 14.324 * module_size 
+ + 28.9225 * price_per_gb 
+ + 27.633 * first_word_latency 
+ - 20.127 * cas_timing 
+ - 657.6971
 
 LM num: 27
 price = 
-	4.413 * brand=Corsair,Gigabyte 
-	- 2.6671 * module_type=DDR4 
-	+ 0.1265 * speed 
-	+ 73.5548 * number_of_modules 
-	+ 14.324 * module_size 
-	+ 39.5852 * price_per_gb 
-	+ 30.3304 * first_word_latency 
-	- 20.127 * cas_timing 
-	- 781.341
+ 4.413 * brand=Corsair,Gigabyte 
+ - 2.6671 * module_type=DDR4 
+ + 0.1265 * speed 
+ + 73.5548 * number_of_modules 
+ + 14.324 * module_size 
+ + 39.5852 * price_per_gb 
+ + 30.3304 * first_word_latency 
+ - 20.127 * cas_timing 
+ - 781.341
 
 LM num: 28
 price = 
-	3.4586 * brand=Corsair,Gigabyte 
-	- 2.6671 * module_type=DDR4 
-	+ 0.0757 * speed 
-	+ 56.3497 * number_of_modules 
-	+ 20.557 * module_size 
-	+ 75.3036 * price_per_gb 
-	+ 14.1946 * first_word_latency 
-	- 9.4533 * cas_timing 
-	- 826.4525
+ 3.4586 * brand=Corsair,Gigabyte 
+ - 2.6671 * module_type=DDR4 
+ + 0.0757 * speed 
+ + 56.3497 * number_of_modules 
+ + 20.557 * module_size 
+ + 75.3036 * price_per_gb 
+ + 14.1946 * first_word_latency 
+ - 9.4533 * cas_timing 
+ - 826.4525
 
 LM num: 29
 price = 
-	3.4586 * brand=Corsair,Gigabyte 
-	- 2.6671 * module_type=DDR4 
-	+ 0.0823 * speed 
-	+ 48.506 * number_of_modules 
-	+ 15.4749 * module_size 
-	+ 63.3642 * price_per_gb 
-	+ 14.1946 * first_word_latency 
-	- 9.4533 * cas_timing 
-	- 696.6788
+ 3.4586 * brand=Corsair,Gigabyte 
+ - 2.6671 * module_type=DDR4 
+ + 0.0823 * speed 
+ + 48.506 * number_of_modules 
+ + 15.4749 * module_size 
+ + 63.3642 * price_per_gb 
+ + 14.1946 * first_word_latency 
+ - 9.4533 * cas_timing 
+ - 696.6788
 
 LM num: 30
 price = 
-	3.4586 * brand=Corsair,Gigabyte 
-	- 2.6671 * module_type=DDR4 
-	+ 0.0823 * speed 
-	+ 48.506 * number_of_modules 
-	+ 18.4727 * module_size 
-	+ 81.84 * price_per_gb 
-	+ 14.1946 * first_word_latency 
-	- 9.4533 * cas_timing 
-	- 747.6965
+ 3.4586 * brand=Corsair,Gigabyte 
+ - 2.6671 * module_type=DDR4 
+ + 0.0823 * speed 
+ + 48.506 * number_of_modules 
+ + 18.4727 * module_size 
+ + 81.84 * price_per_gb 
+ + 14.1946 * first_word_latency 
+ - 9.4533 * cas_timing 
+ - 747.6965
 
 LM num: 31
 price = 
-	3.4586 * brand=Corsair,Gigabyte 
-	- 2.6671 * module_type=DDR4 
-	+ 0.1738 * speed 
-	+ 48.506 * number_of_modules 
-	+ 17.3483 * module_size 
-	+ 64.1732 * price_per_gb 
-	+ 14.1946 * first_word_latency 
-	- 9.4533 * cas_timing 
-	- 1025.9906
+ 3.4586 * brand=Corsair,Gigabyte 
+ - 2.6671 * module_type=DDR4 
+ + 0.1738 * speed 
+ + 48.506 * number_of_modules 
+ + 17.3483 * module_size 
+ + 64.1732 * price_per_gb 
+ + 14.1946 * first_word_latency 
+ - 9.4533 * cas_timing 
+ - 1025.9906
 
 LM num: 32
 price = 
-	3.4586 * brand=Corsair,Gigabyte 
-	- 2.6671 * module_type=DDR4 
-	+ 0.2918 * speed 
-	+ 48.506 * number_of_modules 
-	+ 17.3483 * module_size 
-	+ 65.3092 * price_per_gb 
-	+ 14.1946 * first_word_latency 
-	- 9.4533 * cas_timing 
-	- 1441.4778
+ 3.4586 * brand=Corsair,Gigabyte 
+ - 2.6671 * module_type=DDR4 
+ + 0.2918 * speed 
+ + 48.506 * number_of_modules 
+ + 17.3483 * module_size 
+ + 65.3092 * price_per_gb 
+ + 14.1946 * first_word_latency 
+ - 9.4533 * cas_timing 
+ - 1441.4778
 
 LM num: 33
 price = 
-	3.4586 * brand=Corsair,Gigabyte 
-	- 2.6671 * module_type=DDR4 
-	+ 0.3099 * speed 
-	+ 48.506 * number_of_modules 
-	+ 17.3483 * module_size 
-	+ 64.6559 * price_per_gb 
-	+ 14.1946 * first_word_latency 
-	- 9.4533 * cas_timing 
-	- 1482.7493
+ 3.4586 * brand=Corsair,Gigabyte 
+ - 2.6671 * module_type=DDR4 
+ + 0.3099 * speed 
+ + 48.506 * number_of_modules 
+ + 17.3483 * module_size 
+ + 64.6559 * price_per_gb 
+ + 14.1946 * first_word_latency 
+ - 9.4533 * cas_timing 
+ - 1482.7493
 
 LM num: 34
 price = 
-	3.4586 * brand=Corsair,Gigabyte 
-	- 2.6671 * module_type=DDR4 
-	+ 0.1572 * speed 
-	+ 75.6196 * number_of_modules 
-	+ 34.1828 * module_size 
-	+ 92.0395 * price_per_gb 
-	+ 14.1946 * first_word_latency 
-	- 9.4533 * cas_timing 
-	- 1333.6165
+ 3.4586 * brand=Corsair,Gigabyte 
+ - 2.6671 * module_type=DDR4 
+ + 0.1572 * speed 
+ + 75.6196 * number_of_modules 
+ + 34.1828 * module_size 
+ + 92.0395 * price_per_gb 
+ + 14.1946 * first_word_latency 
+ - 9.4533 * cas_timing 
+ - 1333.6165
 
 Number of Rules : 34
 
@@ -3111,7 +3381,7 @@ Total Number of Instances             1791
 
 </details>
 
-Possiamo dire che l'algoritmo M5P ha costruito un ottimo albero e con ottime prestazioni.
+Possiamo dire che l'algoritmo M5P ha costruito un ottimo albero (solo 34 foglie!) e con ottime prestazioni.
 
 ### Scelta dell'algoritmo
 
@@ -3124,6 +3394,6 @@ Mettiamo a confronto le performance dei vari algoritmi usati
 | Random Forest     | 0.9708                       | 21.6589               | 58.0235                 | 15.9318%                 | 25.6647%                   |
 | M5P               | 0.9881                       | 11.5444               | 36.0696                 | 8.4918%                  | 15.9541%                   |
 
-Dato che si è scelto di usare python come linguaggio, purtroppo non possiamo fare affidamento all' `M5P` dato che la sua implementazione in scikit-learn è ancora in fase di developement. Non resta che scegliere il Random Forest.
-
 ## Implementazione
+
+@todo blah blah blah

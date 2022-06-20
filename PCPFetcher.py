@@ -15,17 +15,9 @@ def parseArgs():
 						help="Fetch parts from PCPartPicker. Can be repeated for more part types. 'ALL' will fetch all parts",
 						type=str, action="append", dest="PARTS_TO_FETCH", metavar="<part name>")
 
-	parser.add_argument("--fetch-output-dir", 
+	parser.add_argument("-o", "--output-dir", 
 						help="Specify where to save fetched parts",
 						type=str, dest="FETCH_OUTPUT_DIR", metavar="<directory>", default="./parts")
-
-	parser.add_argument("-c", "--to-csv", 
-						help="Convert <parts>.json to CSV and remove non-complete parts. Can be repeated for more part types. 'ALL' will convert all parts",
-						type=str, action="append", dest="PARTS_TO_CONVERT", metavar="<part name>")
-
-	parser.add_argument("--csv-output-dir", 
-						help="Specify where to save CSV converted parts",
-						type=str, dest="CSV_OUTPUT_DIR", metavar="<directory>", default="./parts/formatted")
 
 	parser.add_argument("--region", 
 						help="Set the region to be used when fetching from PCPartPicker",
@@ -49,6 +41,9 @@ if args.supported_parts:
 if args.supported_regions:
 	print("Supported regions: " + str(api.supported_regions))
 
+if args.supported_parts or args.supported_regions:
+	quit()
+
 os.makedirs(os.path.dirname(args.FETCH_OUTPUT_DIR + "/"), exist_ok=True)
 
 if args.PARTS_TO_FETCH is not None:
@@ -58,11 +53,3 @@ if args.PARTS_TO_FETCH is not None:
 		else:
 			print(partName + " is not currently supported by PCPartPicker.")
 			
-
-
-if args.PARTS_TO_CONVERT is not None:
-	for partName in api.supported_parts if "ALL" in args.PARTS_TO_CONVERT else args.PARTS_TO_CONVERT:
-		if partName in api.supported_parts:
-			JSONParser.convertParts(partName, args.FETCH_OUTPUT_DIR, args.CSV_OUTPUT_DIR)
-		else:
-			print(partName + " is not currently supported by PCPartPicker.")

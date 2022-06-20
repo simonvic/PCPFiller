@@ -26,7 +26,6 @@ public class Memory extends PCPart {
 
 	@Override
 	public String toCSV() {
-		System.out.println(brand);
 		return """
         "%s","%s","%s",%f,%d,%f,%f,"%s",%f,%f,%b,%f""".formatted(
 			brand, model, moduleType, speedMHz,

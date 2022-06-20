@@ -1,2 +1,4 @@
-parts
-__pycache__
+/PCPFiller/target
+/PCPFiller/src/main/resources/it/simonvic/pcpfiller/parts
+/parts
+/__pycache__

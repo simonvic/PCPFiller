@@ -1,6 +1,5 @@
 package it.simonvic.pcpfiller.parts;
 
-import it.simonvic.pcpfiller.PCPartNotSupportedException;
 import java.io.Reader;
 
 /**
@@ -9,10 +8,9 @@ import java.io.Reader;
  */
 public abstract class PCPartsJSON {
 	
-	public static PCPartsJSON from(Reader reader, PCPart.Type partType) throws PCPartNotSupportedException {
+	public static PCPartsJSON from(Reader reader, PCPart.Type partType) {
 		return switch (partType) {
 			case MEMORY -> MemoriesJSON.from(reader);
-			default -> throw new PCPartNotSupportedException(partType);
 		};
 	}
 	

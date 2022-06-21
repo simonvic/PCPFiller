@@ -1,7 +1,5 @@
 package it.simonvic.pcpfiller.parts;
 
-import it.simonvic.pcpfiller.PCPartNotSupportedException;
-
 /**
  *
  * @author simonvic
@@ -9,24 +7,23 @@ import it.simonvic.pcpfiller.PCPartNotSupportedException;
 public abstract sealed class PCPart permits Memory {
 
 	public enum Type {
-		MEMORY, VIDEO_CARD, CPU //etc.
+		MEMORY
 	}
 
 //	public abstract String getCSVHeader();
-	public static String getCSVHeader(PCPart.Type partType) throws PCPartNotSupportedException {
+	public static String getCSVHeader(PCPart.Type partType) {
 		return switch (partType) {
 			case MEMORY ->
 				Memory.getCSVHeader();
-			default -> throw new PCPartNotSupportedException(partType);
 		};
 	}
 
 	public abstract String toCSV();
 
 	public abstract static class JSON {
-				
-		public abstract PCPart build();		
-		
+
+		public abstract PCPart build();
+
 	}
 
 }

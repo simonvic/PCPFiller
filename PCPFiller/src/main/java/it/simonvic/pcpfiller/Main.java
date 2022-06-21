@@ -3,6 +3,7 @@ package it.simonvic.pcpfiller;
 import it.simonvic.pcpfiller.parts.PCPart;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -34,6 +35,13 @@ public class Main {
 	private static final Option OPT_FROM_CSV = optionOf("        c,from-csv         :csv-file            ?Load the dataset from a csv file");
 	private static final Option OPT_MISSING_TOKEN = optionOf("     missing-token    :token               ?Specify what token to be used when data is missing. Default: '?' (question mark)");
 	private static final Option OPT_TEMP_DIR = optionOf("          temp-dir         :directory           ?Specify where to store temporary files used by PCPFiller. Default: '/tmp/PCPFiller'");
+	private static final Option OPT_SAVE_OUTPUT = optionOf("     s,save-output      :output-csv          ?Specify where to store the output csv dataset");
+
+	private static final Options OPTIONS = optionsOf(
+		OPT_HELP, OPT_VERBOSE, OPT_LOAD_MODEL, OPT_SAVE_MODEL,
+		OPT_PART, OPT_SUPPORTED_PARTS, OPT_FROM_JSON, OPT_FROM_CSV,
+		OPT_MISSING_TOKEN, OPT_TEMP_DIR, OPT_SAVE_OUTPUT
+	);
 
 	private static int verbosity = 0;
 	private static Path tempDir = Path.of("/tmp/PCPFiller");
@@ -48,21 +56,17 @@ public class Main {
 		return missingToken;
 	}
 
-	public static void main(String... args) {
-
-		Options opts = optionsOf(
-			OPT_HELP, OPT_VERBOSE, OPT_LOAD_MODEL, OPT_SAVE_MODEL,
-			OPT_PART, OPT_SUPPORTED_PARTS, OPT_FROM_JSON, OPT_FROM_CSV,
-			OPT_MISSING_TOKEN, OPT_TEMP_DIR
-		);
-
+	public static void main(String... args) throws IOException, Exception {
 		try {
-			parseOptions(opts, args);
+			parseOptions(args);
 		} catch (MissingOptionException | InteruptiveOptionException ex) {
 			return;
 		} catch (ParseException ex) {
-			printHelp(opts);
-			System.err.println(ex.getMessage());
+			printHelp();
+			log.error(ex);
+			return;
+		} catch (PCPartNotSupportedException ex) {
+			log.error(ex);
 			return;
 		}
 
@@ -74,47 +78,32 @@ public class Main {
 		log.info("Missing token: " + missingToken);
 		log.info("PCPart to fill: " + partToFill);
 
-		Instances dataset;
-		try {
-			dataset = loadDataset();
-		} catch (IOException | PCPartNotSupportedException ex) {
-			log.error(ex);
-			return;
+		// @todo improve Weka exceptions
+		PCPFiller filler = new PCPFiller(partToFill, loadDataset());
+
+		if (modelToLoad != null) {
+			log.info("Loading model: " + modelToLoad);
+			filler.loadModel(modelToLoad);
+		} else {
+			log.info("Training model...");
+			filler.trainModel();
+			log.info("Done!");
+			log.info("Evaluating model...");
+			Evaluation eval = filler.evaluate();
+			log.info(eval.toSummaryString());
 		}
 
-		try {
-
-			PCPFiller filler = new PCPFiller(partToFill, dataset);
-
-			if (modelToLoad != null) {
-				log.info("Loading model: " + modelToLoad);
-				filler.loadModel(modelToLoad);
-			} else {
-				log.info("Training model...");
-				filler.trainModel();
-				log.info("Done!");
-				log.info("Evaluating model...");
-				Evaluation eval = filler.evaluate();
-				log.info(eval.toSummaryString());
-			}
-
-			if (modelSaveFile != null) {
-				filler.saveModel(modelSaveFile);
-			}
-
-			log.info("Filling...");
-			filler.fill();
-
-			System.out.println(dataset);
-
-		} catch (PCPartNotSupportedException ex) {
-			log.error(ex);
-		} catch (Exception ex) {
-			log.error(ex);
+		if (modelSaveFile != null) {
+			filler.saveModel(modelSaveFile);
 		}
+
+		log.info("Filling...");
+		filler.fill();
+
+		System.out.println(filler.getDataset());
 	}
 
-	private static Instances loadDataset() throws IOException, PCPartNotSupportedException {
+	private static Instances loadDataset() throws IOException {
 		if (jsonSource != null && csvSource != null) {
 			log.warn("Both CSV and JSON have been specified. CSV will be used!");
 			return Utils.instancesFromCSV(csvSource.toFile());
@@ -133,8 +122,8 @@ public class Main {
 		return null;
 	}
 
-	private static void printHelp(Options opts) {
-		new HelpFormatter().printHelp("PCPFiller", opts);
+	private static void printHelp() {
+		new HelpFormatter().printHelp("PCPFiller", OPTIONS);
 	}
 
 	private static void printSupportedParts() {
@@ -144,15 +133,15 @@ public class Main {
 		}
 	}
 
-	private static void parseOptions(Options opts, String[] args) throws ParseException, InteruptiveOptionException {
-		CommandLine cli = new DefaultParser().parse(opts, args);
+	private static void parseOptions(String[] args) throws ParseException, InteruptiveOptionException, PCPartNotSupportedException {
+		CommandLine cli = new DefaultParser().parse(OPTIONS, args);
 
 		verbosity = (int) Stream.of(cli.getOptions())
 			.filter(OPT_VERBOSE::equals)
 			.count();
 
 		if (cli.hasOption(OPT_HELP)) {
-			printHelp(opts);
+			printHelp();
 			throw new InteruptiveOptionException();
 		}
 
@@ -169,11 +158,15 @@ public class Main {
 
 		if (!cli.hasOption(OPT_FROM_CSV) && !cli.hasOption(OPT_FROM_JSON)) {
 			log.error("You need to specify at least a CSV or JSON source!");
-			printHelp(opts);
+			printHelp();
 			throw new MissingOptionException("");
 		}
 
-		partToFill = PCPart.Type.valueOf(cli.getOptionValue(OPT_PART).toUpperCase());
+		try {
+			partToFill = PCPart.Type.valueOf(cli.getOptionValue(OPT_PART).toUpperCase());
+		} catch (IllegalArgumentException ex) {
+			throw new PCPartNotSupportedException(cli.getOptionValue(OPT_PART));
+		}
 
 		if (cli.hasOption(OPT_FROM_CSV)) {
 			csvSource = Path.of(cli.getOptionValue(OPT_FROM_CSV));

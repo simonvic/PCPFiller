@@ -30,7 +30,7 @@ public class Utils {
 		return csvLoader.getDataSet();
 	}
 
-	public static Instances instancesFromJSON(File jsonFile, PCPart.Type partType) throws IOException, PCPartNotSupportedException {
+	public static Instances instancesFromJSON(File jsonFile, PCPart.Type partType) throws IOException {
 
 		Reader jsonReader = new InputStreamReader(new FileInputStream(jsonFile));
 		String csv = PCPartsJSON.from(jsonReader, partType).toCSV();

@@ -8,7 +8,7 @@ import it.simonvic.pcpfiller.parts.PCPart;
  */
 public class PCPartNotSupportedException extends Exception {
 
-	public PCPartNotSupportedException(PCPart.Type partType) {
+	public PCPartNotSupportedException(String partType) {
 		super("The " + partType + " is not supported.");
 	}
 

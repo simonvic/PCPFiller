@@ -23,7 +23,7 @@ public class PCPFiller {
 	protected PCPartClassifier pcpClassifier;
 	protected Instances dataset;
 
-	public PCPFiller(PCPart.Type partType, Instances dataset) throws PCPartNotSupportedException, Exception {
+	public PCPFiller(PCPart.Type partType, Instances dataset) throws Exception {
 		this.dataset = dataset;
 		this.pcpClassifier = getPCPClassifier(partType);
 	}
@@ -45,15 +45,18 @@ public class PCPFiller {
 	}
 
 	public void fill() throws Exception {
-		
+
 	}
 
-	private PCPartClassifier getPCPClassifier(PCPart.Type partType) throws PCPartNotSupportedException, Exception {
+	private PCPartClassifier getPCPClassifier(PCPart.Type partType) throws Exception {
 		return switch (partType) {
 			case MEMORY ->
 				new MemoryClassifier(dataset);
-			default -> throw new PCPartNotSupportedException(partType);
 		};
+	}
+
+	public Instances getDataset() {
+		return dataset;
 	}
 
 }

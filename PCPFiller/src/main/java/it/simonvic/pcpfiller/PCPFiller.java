@@ -6,17 +6,16 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.ObjectOutputStream;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Random;
-import weka.classifiers.AbstractClassifier;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.trees.RandomForest;
@@ -33,9 +32,11 @@ import weka.filters.unsupervised.instance.RemoveWithValues;
  */
 public class PCPFiller {
 
+	protected static final Logger L = LogManager.getLogger();
+	
 	public static final String MISSING_VALUE_TOKEN = "?";
 
-	private static void convertJSONToCSV() throws IOException {
+	private void convertJSONToCSV() throws IOException {
 		Reader jsonReader = new InputStreamReader(PCPFiller.class.getResourceAsStream("parts/memory.json"));
 		Memory.JSON.Root jsonObj = new Gson().fromJson(jsonReader, Memory.JSON.getType());
 
@@ -51,7 +52,7 @@ public class PCPFiller {
 		Files.writeString(Path.of("/tmp/memory.csv"), sb, StandardOpenOption.CREATE);
 	}
 
-	private static void trainModel(Classifier classifier, Instances trainDataset) throws IOException, Exception {
+	private void trainModel(Classifier classifier, Instances trainDataset) throws IOException, Exception {
 		System.out.println("Training model...");
 
 		// set "price" as class
@@ -78,7 +79,7 @@ public class PCPFiller {
 		System.out.println(classifier);
 	}
 
-	private static Evaluation evaluateModel(Classifier classifier, Instances trainDataset) throws Exception {
+	private Evaluation evaluateModel(Classifier classifier, Instances trainDataset) throws Exception {
 		System.out.println("Evaluating model...");
 		// cross validation (10-fold)
 		Evaluation eval = new Evaluation(trainDataset);
@@ -87,21 +88,8 @@ public class PCPFiller {
 		return eval;
 	}
 
-	private static void saveModel(Classifier classifier, String destinationFilePath) throws Exception {
-		System.out.println("Saving model...");
-		weka.core.SerializationHelper.write(destinationFilePath, classifier);
-	}
-
-	private static Classifier loadModel(String filePath) throws Exception {
-		System.out.println("Loading model...");
-		return (Classifier) weka.core.SerializationHelper.read(filePath);
-	}
-
-	public static void main(String[] args) throws IOException, Exception {
+	public void run() throws IOException, Exception {
 		convertJSONToCSV();
-
-		// Load the csv file
-		Instances trainDataset = getInstancesOf(Path.of("/tmp/memory.csv").toFile());
 
 		Classifier classifier;
 		try {
@@ -109,23 +97,43 @@ public class PCPFiller {
 		} catch (FileNotFoundException | ClassNotFoundException ex) {
 			System.out.println("Can't create model! Creating new!");
 			classifier = new RandomForest();
+			Instances trainDataset = getInstancesOf(Path.of("/tmp/memory.csv").toFile());
 			trainModel(classifier, trainDataset);
 			Evaluation eval = evaluateModel(classifier, trainDataset);
 			System.out.println(eval.toSummaryString());
 			saveModel(classifier, "/tmp/memory.model");
 		}
 
-		Instances dataset = getInstancesOf("""
-            "brand","moduleType","speedMHz","modulesNumber","moduleSizeGB","firstWordLatency","casTiming","errorCorrection","priceEuro"
-            "Corsair","DDR3",1333.0,1,8.0,13.503,9,false,-1
-            "Corsair","DDR3",1333.0,2,8.0,13.503,9,false,-1
-            "Corsair","DDR4",3200.0,2,8.0,10.000,16,false,-1
-            "Kingston","DDR4",3200.0,1,16.0,13.503,9,false,-1
-            """);
-		dataset.setClassIndex(dataset.attribute("priceEuro").index());
+		Instances dataset = getInstancesOf(Path.of("/tmp/memory.csv").toFile());
+		dataset.setClass(dataset.attribute("priceEuro"));
+		// Remove columns "model", "pricePerGB" and "color"
+		Remove filterRemoveAttributes = new Remove();
+		filterRemoveAttributes.setAttributeIndicesArray(indecesOf(dataset,
+			"model",
+			"pricePerGBEuro",
+			"color"
+		));
+		filterRemoveAttributes.setInputFormat(dataset);
+		dataset = Filter.useFilter(dataset, filterRemoveAttributes);
+
+		// Remove instances with missing data
+		RemoveWithValues filterRemoveIncomplete = new RemoveWithValues();
+		filterRemoveIncomplete.setMatchMissingValues(true);
+		filterRemoveIncomplete.setInputFormat(dataset);
+		Instances usable = Filter.useFilter(dataset, filterRemoveIncomplete);
+
+		System.out.printf("Initital dataset instances: %d\n", dataset.numInstances());
+		System.out.printf("Usable instances:           %d\n", usable.numInstances());
+		System.out.printf("Ratio:                      %d %%\n", usable.numInstances() * 100 / dataset.numInstances());
+
 		for (Instance instance : dataset.stream().toList()) {
-			System.out.println("" + classifier.classifyInstance(instance) + " " + instance);
+			instance.setClassValue(classifier.classifyInstance(instance));
 		}
+
+		Instances newUsable = Filter.useFilter(dataset, filterRemoveIncomplete);
+
+		System.out.printf("New Usable instances: %d\n", newUsable.numInstances());
+		System.out.printf("Ratio:                %d %%\n", newUsable.numInstances() * 100 / dataset.numInstances());
 
 	}
 
@@ -148,4 +156,13 @@ public class PCPFiller {
 			.toArray();
 	}
 
+	private static void saveModel(Classifier classifier, String destinationFilePath) throws Exception {
+		System.out.println("Saving model...");
+		weka.core.SerializationHelper.write(destinationFilePath, classifier);
+	}
+
+	private static Classifier loadModel(String filePath) throws Exception {
+		System.out.println("Loading model...");
+		return (Classifier) weka.core.SerializationHelper.read(filePath);
+	}
 }

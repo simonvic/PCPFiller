@@ -1,4 +1,6 @@
 /PCPFiller/target
+/PCPFiller/logs
+/PCPFiller/nbactions.xml
 /PCPFiller/src/main/resources/it/simonvic/pcpfiller/parts
 /parts
 /__pycache__

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    
+	<Properties>
+		<Property name="projectName" value="${project.name}" />
+		<Property name="projectVersion" value="${project.version" />
+		<Property name="logsFolder" value="./logs/${projectName}"/>
+		<Property name="logFilename" value="${logsFolder}/${projectName}_$${date:yyyy-MM-dd}.log"/>
+		<Property name="defaultHeader">\
+			═════════════════════════════════════════════════════════════════════════════
+			${projectName} | ${projectVersion} | $${date:yyyy-MM-dd HH:mm}
+			-----------------------------------------------------------------------------
+			OS version: ${java:os}
+			Hardware: ${java:hw}
+			Locale: ${java:hw}
+			Java version: ${java:version}
+			Java runtime version: ${java:runtime}
+			Java vm version: ${java:vm}
+			-----------------------------------------------------------------------------
+			FF = FATAL | EE = ERROR | WW = WARNING | II = INFO | DD = DEBUG | TT = TRACE
+			─────────────────────────────────────────────────────────────────────────────%n
+		</Property>
+		<Property name="defaultPattern" value="%d{HH:mm:ss.SSS} [ %level{FATAL=FF, ERROR=EE, WARN=WW, INFO=II, DEBUG=DD, TRACE=TT} ] %class{1} :: %method(%line) :  %message%n"/>
+		<Property name="defaultFooter">\
+			-----------------------------------------------------------------------------
+			End at: $${date:yyyy-MM-dd HH:mm}
+			═════════════════════════════════════════════════════════════════════════════%n
+		</Property>
+	</Properties>
+    
+	<Appenders>
+		<Console name="Console" target="SYSTEM_OUT">
+			<PatternLayout pattern="${defaultPattern}"/>
+		</Console>
+		<File name="File" fileName="${logFilename}">
+			<PatternLayout header="${defaultHeader}" pattern="${defaultPattern}" footer="${defaultFooter}" />
+		</File>
+	</Appenders>
+    
+	<Loggers>
+		<Root level="TRACE">
+			<AppenderRef ref="Console"/>
+		</Root>
+		<Logger name="server" level="TRACE">
+			<AppenderRef ref="File"/>
+		</Logger>
+	</Loggers>
+    
+</Configuration>

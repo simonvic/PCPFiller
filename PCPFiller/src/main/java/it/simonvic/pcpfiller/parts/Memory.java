@@ -16,7 +16,7 @@ import lombok.ToString;
 @Setter
 @EqualsAndHashCode(callSuper = true)
 @ToString
-public class Memory extends PCPart {
+public non-sealed class Memory extends PCPart {
 
 	public static String getCSVHeader() {
 		return """
@@ -108,9 +108,6 @@ public class Memory extends PCPart {
 		private double cas_timing;
 		private String error_correction;
 		private String[] price;
-
-		public JSON() {
-		}
 
 		public Memory.JSON brand(String brand) {
 			this.brand = brand;

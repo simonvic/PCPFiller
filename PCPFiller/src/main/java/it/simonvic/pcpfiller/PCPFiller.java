@@ -1,30 +1,6 @@
 package it.simonvic.pcpfiller;
 
-import com.google.gson.Gson;
-import it.simonvic.pcpfiller.parts.Memory;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.List;
-import java.util.Random;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import weka.classifiers.Classifier;
-import weka.classifiers.Evaluation;
-import weka.classifiers.trees.RandomForest;
-import weka.core.Instance;
-import weka.core.Instances;
-import weka.core.converters.CSVLoader;
-import weka.filters.Filter;
-import weka.filters.unsupervised.attribute.Remove;
-import weka.filters.unsupervised.instance.RemoveWithValues;
+import weka.knowledgeflow.steps.Classifier;
 
 /**
  *
@@ -32,9 +8,20 @@ import weka.filters.unsupervised.instance.RemoveWithValues;
  */
 public class PCPFiller {
 
+	static String[] getSupportedParts() {
+		return new String[]{"memory"};
+	}
+
+	protected Classifier classifier;
+
+	public void fill() {
+
+	}
+
+	/*
 	protected static final Logger L = LogManager.getLogger();
 	
-	public static final String MISSING_VALUE_TOKEN = "?";
+	public static String MISSING_VALUE_TOKEN = "?";
 
 	private void convertJSONToCSV() throws IOException {
 		Reader jsonReader = new InputStreamReader(PCPFiller.class.getResourceAsStream("parts/memory.json"));
@@ -165,4 +152,5 @@ public class PCPFiller {
 		System.out.println("Loading model...");
 		return (Classifier) weka.core.SerializationHelper.read(filePath);
 	}
+	 */
 }

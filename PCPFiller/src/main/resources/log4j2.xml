@@ -20,7 +20,8 @@
 			FF = FATAL | EE = ERROR | WW = WARNING | II = INFO | DD = DEBUG | TT = TRACE
 			─────────────────────────────────────────────────────────────────────────────%n
 		</Property>
-		<Property name="defaultPattern" value="%d{HH:mm:ss.SSS} [ %level{FATAL=FF, ERROR=EE, WARN=WW, INFO=II, DEBUG=DD, TRACE=TT} ] %class{1} :: %method(%line) :  %message%n"/>
+		<Property name="defaultPattern" value="%d{HH:mm:ss.SSS} [%level{FATAL=FF, ERROR=EE, WARN=WW, INFO=II, DEBUG=DD, TRACE=TT}] %message%n"/>
+		<Property name="defaultPatternWithClass" value="%d{HH:mm:ss.SSS} [%level{FATAL=FF, ERROR=EE, WARN=WW, INFO=II, DEBUG=DD, TRACE=TT}] %class{1} :: %method(%line) :  %message%n"/>
 		<Property name="defaultFooter">\
 			-----------------------------------------------------------------------------
 			End at: $${date:yyyy-MM-dd HH:mm}

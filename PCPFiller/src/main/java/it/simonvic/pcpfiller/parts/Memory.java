@@ -1,8 +1,5 @@
 package it.simonvic.pcpfiller.parts;
 
-import com.google.gson.reflect.TypeToken;
-import java.lang.reflect.Type;
-import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -75,15 +72,10 @@ public non-sealed class Memory extends PCPart {
 	}
 
 	public static class JSON extends PCPart.JSON {
-
-		public static class Root {
-
-			public List<Memory.JSON> memory;
-		}
-
-		public static Type getType() {
-			return new TypeToken<Memory.JSON.Root>() {
-			}.getType();
+		
+		@Override
+		public PCPart build() {
+			return new Memory(this);
 		}
 
 		public static class Speed {
@@ -167,10 +159,6 @@ public non-sealed class Memory extends PCPart {
 		public Memory.JSON priceEuro(String[] price) {
 			this.price = price;
 			return this;
-		}
-
-		public Memory build() {
-			return new Memory(this);
 		}
 
 	}

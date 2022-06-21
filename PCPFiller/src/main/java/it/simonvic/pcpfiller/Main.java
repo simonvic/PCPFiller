@@ -1,7 +1,8 @@
 package it.simonvic.pcpfiller;
 
+import it.simonvic.pcpfiller.parts.PCPart;
+import java.io.IOException;
 import java.nio.file.Path;
-import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -12,6 +13,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import weka.classifiers.Evaluation;
+import weka.core.Instances;
 
 /**
  *
@@ -32,14 +35,18 @@ public class Main {
 	private static final Option OPT_MISSING_TOKEN = optionOf("     missing-token    :token               ?Specify what token to be used when data is missing. Default: '?' (question mark)");
 	private static final Option OPT_TEMP_DIR = optionOf("          temp-dir         :directory           ?Specify where to store temporary files used by PCPFiller. Default: '/tmp/PCPFiller'");
 
-	protected static int verbosity = 0;
-	protected static Path tempDir = Path.of("/tmp/PCPFiller");
-	protected static String missingToken = "?";
-	protected static Path csvSource;
-	protected static Path jsonSource;
-	protected static Path modelToLoad;
-	protected static Path modelSaveFile;
-	protected static String partToFill;
+	private static int verbosity = 0;
+	private static Path tempDir = Path.of("/tmp/PCPFiller");
+	private static String missingToken = "?";
+	private static Path csvSource;
+	private static Path jsonSource;
+	private static Path modelToLoad;
+	private static Path modelSaveFile;
+	private static PCPart.Type partToFill;
+
+	public static String getMissingToken() {
+		return missingToken;
+	}
 
 	public static void main(String... args) {
 
@@ -48,6 +55,7 @@ public class Main {
 			OPT_PART, OPT_SUPPORTED_PARTS, OPT_FROM_JSON, OPT_FROM_CSV,
 			OPT_MISSING_TOKEN, OPT_TEMP_DIR
 		);
+
 		try {
 			parseOptions(opts, args);
 		} catch (MissingOptionException | InteruptiveOptionException ex) {
@@ -58,24 +66,71 @@ public class Main {
 			return;
 		}
 
-		if (verbosity >= 3) log.info("Making temp directory: " + tempDir);
+		log.info("Making temp directory: " + tempDir);
 		tempDir.toFile().mkdirs();
 
-		if (jsonSource != null && csvSource != null) {
-			log.warn("Both CSV and JSON have been specified. CSV will be used!");
-		} else if (jsonSource != null) {
-			if (verbosity >= 1) log.info("Loading JSON dataset: " + jsonSource);
-			// blah blah
-		} else if (csvSource != null) {
-			if (verbosity >= 1) log.info("Loading CSV dataset: " + csvSource);
-			// blah blah
+		log.info("Model to load: " + modelToLoad);
+		log.info("Model will be saved in : " + modelSaveFile);
+		log.info("Missing token: " + missingToken);
+		log.info("PCPart to fill: " + partToFill);
+
+		Instances dataset;
+		try {
+			dataset = loadDataset();
+		} catch (IOException | PCPartNotSupportedException ex) {
+			log.error(ex);
+			return;
 		}
 
-		if (verbosity >= 1 && modelToLoad != null) log.info("Model to load: " + modelToLoad);
-		if (verbosity >= 1 && modelSaveFile != null) log.info("Model will be saved in : " + modelSaveFile);
-		if (verbosity >= 1) log.info("Missing token: " + missingToken);
+		try {
 
-		log.info("PCPart to fill: " + partToFill);
+			PCPFiller filler = new PCPFiller(partToFill, dataset);
+
+			if (modelToLoad != null) {
+				log.info("Loading model: " + modelToLoad);
+				filler.loadModel(modelToLoad);
+			} else {
+				log.info("Training model...");
+				filler.trainModel();
+				log.info("Done!");
+				log.info("Evaluating model...");
+				Evaluation eval = filler.evaluate();
+				log.info(eval.toSummaryString());
+			}
+
+			if (modelSaveFile != null) {
+				filler.saveModel(modelSaveFile);
+			}
+
+			log.info("Filling...");
+			filler.fill();
+
+			System.out.println(dataset);
+
+		} catch (PCPartNotSupportedException ex) {
+			log.error(ex);
+		} catch (Exception ex) {
+			log.error(ex);
+		}
+	}
+
+	private static Instances loadDataset() throws IOException, PCPartNotSupportedException {
+		if (jsonSource != null && csvSource != null) {
+			log.warn("Both CSV and JSON have been specified. CSV will be used!");
+			return Utils.instancesFromCSV(csvSource.toFile());
+		}
+
+		if (csvSource != null) {
+			log.info("Loading CSV dataset: " + csvSource);
+			return Utils.instancesFromCSV(csvSource.toFile());
+		}
+
+		if (jsonSource != null) {
+			log.info("Loading JSON dataset: " + jsonSource);
+			return Utils.instancesFromJSON(jsonSource.toFile(), partToFill);
+		}
+
+		return null;
 	}
 
 	private static void printHelp(Options opts) {
@@ -111,14 +166,14 @@ public class Main {
 			printSupportedParts();
 			throw new MissingOptionException("");
 		}
-		
+
 		if (!cli.hasOption(OPT_FROM_CSV) && !cli.hasOption(OPT_FROM_JSON)) {
 			log.error("You need to specify at least a CSV or JSON source!");
 			printHelp(opts);
 			throw new MissingOptionException("");
 		}
-		
-		partToFill = cli.getOptionValue(OPT_PART);
+
+		partToFill = PCPart.Type.valueOf(cli.getOptionValue(OPT_PART).toUpperCase());
 
 		if (cli.hasOption(OPT_FROM_CSV)) {
 			csvSource = Path.of(cli.getOptionValue(OPT_FROM_CSV));

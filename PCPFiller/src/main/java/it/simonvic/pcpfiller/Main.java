@@ -27,6 +27,7 @@ public class Main {
 	private static final Option OPT_HELP = optionOf("                h,help                                  ?Show this help");
 	private static final Option OPT_VERBOSE = optionOf("             v,verbose                               ?Be verbose. Can be repeated for more verbosity");
 	private static final Option OPT_LOAD_MODEL = optionOf("          m,load-model       :model-file          ?Specify to load a saved model");
+	private static final Option OPT_EVAL_MODEL = optionOf("            eval-model                            ?Specify to evaluate the model");
 	private static final Option OPT_SAVE_MODEL = optionOf("          M,save-model       :model-file          ?Specify to save the model");
 	private static final Option OPT_PART = optionOf("                p,part             :pc-part-name        ?Specify what pcpart to fill. For a list of supported parts, see --supported-parts");
 	private static final Option OPT_SUPPORTED_PARTS = optionOf("     P,supported-parts                       ?Get a list of the supported parts");
@@ -38,7 +39,7 @@ public class Main {
 	private static final Option OPT_OUT_DATASET_FORMAT = optionOf("  F,out-format       :output-format       ?Specify what format to use when saving dataset");
 
 	private static final Options OPTIONS = optionsOf(
-		OPT_HELP, OPT_VERBOSE, OPT_LOAD_MODEL, OPT_SAVE_MODEL,
+		OPT_HELP, OPT_VERBOSE, OPT_LOAD_MODEL, OPT_EVAL_MODEL, OPT_SAVE_MODEL,
 		OPT_PART, OPT_SUPPORTED_PARTS, OPT_FROM_JSON, OPT_FROM_CSV,
 		OPT_MISSING_TOKEN, OPT_TEMP_DIR, OPT_OUT_DATASET, OPT_OUT_DATASET_FORMAT
 	);
@@ -49,6 +50,7 @@ public class Main {
 	private static Path csvSourcePath;
 	private static Path jsonSourcePath;
 	private static Path modelPathToLoad;
+	private static boolean evaluateModel;
 	private static Path modelSavePath;
 	private static Path outputDatasetPath;
 	private static DatasetFormat outputDatasetFormat = DatasetFormat.ARFF;
@@ -85,7 +87,9 @@ public class Main {
 			log.info("Training model...");
 			filler.trainModel();
 			log.info("Done!");
+		}
 
+		if (evaluateModel) {
 			log.info("Evaluating model...");
 			Evaluation eval = filler.evaluate();
 			eval.toSummaryString()
@@ -194,6 +198,8 @@ public class Main {
 		if (cli.hasOption(OPT_TEMP_DIR)) {
 			tempDir = Path.of(cli.getOptionValue(OPT_TEMP_DIR));
 		}
+
+		evaluateModel = cli.hasOption(OPT_EVAL_MODEL);
 
 		if (cli.hasOption(OPT_LOAD_MODEL)) {
 			modelPathToLoad = Path.of(cli.getOptionValue(OPT_LOAD_MODEL));

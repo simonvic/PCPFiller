@@ -80,6 +80,12 @@ public class Main {
 		// @todo improve Weka exceptions
 		PCPFiller filler = new PCPFiller(partToFill, loadDataset());
 
+		log.info("Summary:");
+		filler.toSummaryString()
+			.lines()
+			.map(line -> "\t" + line)
+			.forEach(log::info);
+
 		if (modelPathToLoad != null) {
 			log.info("Loading model: " + modelPathToLoad);
 			filler.loadModel(modelPathToLoad);
@@ -109,6 +115,12 @@ public class Main {
 		log.info("Filling...");
 		filler.fill();
 		log.info("Done!");
+
+		log.info("Summary:");
+		filler.toSummaryString()
+			.lines()
+			.map(line -> "\t" + line)
+			.forEach(log::info);
 
 		if (outputDatasetPath != null) {
 			log.info("Saving dataset to: " + outputDatasetPath);

@@ -1,14 +1,12 @@
 package it.simonvic.pcpfiller;
 
 import it.simonvic.pcpfiller.parts.PCPart;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
+import java.util.logging.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import weka.classifiers.Evaluation;
@@ -16,6 +14,7 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.Remove;
+import weka.filters.unsupervised.instance.RemoveWithValues;
 
 /**
  *
@@ -107,6 +106,38 @@ public class PCPFiller {
 
 	private void saveDatasetJSON(Path outputPath) {
 		throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+	}
+
+	public int getInstancesCount() {
+		return dataset.numInstances();
+	}
+
+	public int getCompleteInstancesCount() throws Exception {
+		RemoveWithValues filterRemoveIncomplete = new RemoveWithValues();
+		filterRemoveIncomplete.setMatchMissingValues(true);
+		filterRemoveIncomplete.setInputFormat(dataset);
+		return Filter.useFilter(dataset, filterRemoveIncomplete).numInstances();
+	}
+
+	public int getIncompleteInstancesCount() throws Exception {
+		return getInstancesCount() - getCompleteInstancesCount();
+	}
+
+	public String toSummaryString() {
+		StringBuilder sb = new StringBuilder();
+		try {
+			int totalInstancesCount = getInstancesCount();
+			int completeCount = getCompleteInstancesCount();
+			int incompleteCount = getIncompleteInstancesCount();
+
+			sb.append(String.format("Total instances:     %d\n", totalInstancesCount));
+			sb.append(String.format("Complete instances:  %d\n", completeCount));
+			sb.append(String.format("Icomplete instances: %d\n", incompleteCount));
+			sb.append(String.format("Usable ratio:        %d %%\n", completeCount * 100 / totalInstancesCount));
+		} catch (Exception ex) {
+			log.warn(ex);
+		}
+		return sb.toString();
 	}
 
 }

@@ -1,6 +1,8 @@
 package it.simonvic.pcpfiller;
 
 import java.util.Random;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import weka.classifiers.Evaluation;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
@@ -11,26 +13,30 @@ import weka.core.Instances;
  */
 public class MemoryClassifier extends PCPartClassifier {
 
-	public MemoryClassifier(Instances dataset) throws Exception {
-		super(dataset, new RandomForest());
-		setClass("priceEuro");
-		removeAttributes("model", "pricePerGBEuro", "color");
+	private static final Logger log = LogManager.getLogger();
+
+	public MemoryClassifier() {
+		super(new RandomForest());
 	}
 
 	@Override
-	public void train() throws Exception {
-		buildClassifier();
+	public String getClassName() {
+		return "priceEuro";
 	}
 
 	@Override
-	public Evaluation evaluate() throws Exception {
+	public String[] getAttributesToIgnore() {
+		return new String[]{"model", "pricePerGBEuro", "color"};
+	}
+
+	@Override
+	public Evaluation evaluate(Instances dataset) throws Exception {
 		Evaluation eval = new Evaluation(dataset);
-		
+
 		// cross validation (10-fold)
 		// @NOTE the seed is always the same, so we get reproduceable results (like in Weka GUI)
 		eval.crossValidateModel(classifier, dataset, 10, new Random(1));
 		return eval;
 	}
-
 
 }

@@ -31,10 +31,8 @@ public class Utils {
 	}
 
 	public static Instances instancesFromJSON(File jsonFile, PCPart.Type partType) throws IOException {
-
 		Reader jsonReader = new InputStreamReader(new FileInputStream(jsonFile));
 		String csv = PCPartsJSON.from(jsonReader, partType).toCSV();
-		System.out.println(csv);
 //		Files.writeString(Path.of("/tmp/memory.csv"), sb, StandardOpenOption.CREATE);
 		return instancesFromCSV(csv);
 	}

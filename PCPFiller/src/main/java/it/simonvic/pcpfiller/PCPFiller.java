@@ -1,7 +1,13 @@
 package it.simonvic.pcpfiller;
 
 import it.simonvic.pcpfiller.parts.PCPart;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,7 +22,8 @@ import weka.filters.unsupervised.attribute.Remove;
  * @author simonvic
  */
 public class PCPFiller {
-	
+
+	//@todo replace with enum
 	public static String[] getSupportedParts() {
 		return new String[]{"memory"};
 	}
@@ -24,7 +31,7 @@ public class PCPFiller {
 	public static String getMissingToken() {
 		return Main.getMissingToken();
 	}
-	
+
 	private static final Logger log = LogManager.getLogger();
 
 	protected PCPartClassifier pcpClassifier;
@@ -80,6 +87,26 @@ public class PCPFiller {
 
 	public Instances getDataset() {
 		return dataset;
+	}
+
+	void saveDataset(Path outputPath, DatasetFormat outputDatasetFormat) throws IOException {
+		switch (outputDatasetFormat) {
+			case ARFF -> saveDatasetARFF(outputPath);
+			case CSV -> saveDatasetCSV(outputPath);
+			case JSON -> saveDatasetJSON(outputPath);
+		}
+	}
+
+	private void saveDatasetARFF(Path outputPath) throws IOException {
+		Files.write(outputPath, dataset.toString().getBytes(), StandardOpenOption.CREATE);
+	}
+
+	private void saveDatasetCSV(Path outputPath) {
+		throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+	}
+
+	private void saveDatasetJSON(Path outputPath) {
+		throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
 	}
 
 }

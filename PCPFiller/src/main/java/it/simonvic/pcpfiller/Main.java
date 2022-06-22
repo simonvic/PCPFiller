@@ -3,7 +3,6 @@ package it.simonvic.pcpfiller;
 import it.simonvic.pcpfiller.parts.PCPart;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -25,31 +24,34 @@ public class Main {
 
 	private static final Logger log = LogManager.getLogger();
 
-	private static final Option OPT_HELP = optionOf("            h,help                                  ?Show this help");
-	private static final Option OPT_VERBOSE = optionOf("         v,verbose                               ?Be verbose. Can be repeated for more verbosity");
-	private static final Option OPT_LOAD_MODEL = optionOf("      m,load-model       :model-file          ?Specify to load a saved model");
-	private static final Option OPT_SAVE_MODEL = optionOf("      M,save-model       :model-file          ?Specify to save the model");
-	private static final Option OPT_PART = optionOf("            p,part             :pc-part-name        ?Specify what pcpart to fill. For a list of supported parts, see --supported-parts");
-	private static final Option OPT_SUPPORTED_PARTS = optionOf(" P,supported-parts                       ?Get a list of the supported parts");
-	private static final Option OPT_FROM_JSON = optionOf("       j,from-json        :json-file           ?Load the dataset from a json file");
-	private static final Option OPT_FROM_CSV = optionOf("        c,from-csv         :csv-file            ?Load the dataset from a csv file");
-	private static final Option OPT_MISSING_TOKEN = optionOf("     missing-token    :token               ?Specify what token to be used when data is missing. Default: '?' (question mark)");
-	private static final Option OPT_TEMP_DIR = optionOf("          temp-dir         :directory           ?Specify where to store temporary files used by PCPFiller. Default: '/tmp/PCPFiller'");
-	private static final Option OPT_SAVE_OUTPUT = optionOf("     s,save-output      :output-csv          ?Specify where to store the output csv dataset");
+	private static final Option OPT_HELP = optionOf("                h,help                                  ?Show this help");
+	private static final Option OPT_VERBOSE = optionOf("             v,verbose                               ?Be verbose. Can be repeated for more verbosity");
+	private static final Option OPT_LOAD_MODEL = optionOf("          m,load-model       :model-file          ?Specify to load a saved model");
+	private static final Option OPT_SAVE_MODEL = optionOf("          M,save-model       :model-file          ?Specify to save the model");
+	private static final Option OPT_PART = optionOf("                p,part             :pc-part-name        ?Specify what pcpart to fill. For a list of supported parts, see --supported-parts");
+	private static final Option OPT_SUPPORTED_PARTS = optionOf("     P,supported-parts                       ?Get a list of the supported parts");
+	private static final Option OPT_MISSING_TOKEN = optionOf("         missing-token    :token               ?Specify what token to be used when data is missing. Default: '?' (question mark)");
+	private static final Option OPT_TEMP_DIR = optionOf("              temp-dir         :directory           ?Specify where to store temporary files used by PCPFiller. Default: '/tmp/PCPFiller'");
+	private static final Option OPT_FROM_JSON = optionOf("           j,from-json        :json-file           ?Load the dataset from a json file");
+	private static final Option OPT_FROM_CSV = optionOf("            c,from-csv         :csv-file            ?Load the dataset from a csv file");
+	private static final Option OPT_OUT_DATASET = optionOf("         O,out-dataset      :output-file         ?Specify where to store the output dataset");
+	private static final Option OPT_OUT_DATASET_FORMAT = optionOf("  F,out-format       :output-format       ?Specify what format to use when saving dataset");
 
 	private static final Options OPTIONS = optionsOf(
 		OPT_HELP, OPT_VERBOSE, OPT_LOAD_MODEL, OPT_SAVE_MODEL,
 		OPT_PART, OPT_SUPPORTED_PARTS, OPT_FROM_JSON, OPT_FROM_CSV,
-		OPT_MISSING_TOKEN, OPT_TEMP_DIR, OPT_SAVE_OUTPUT
+		OPT_MISSING_TOKEN, OPT_TEMP_DIR, OPT_OUT_DATASET, OPT_OUT_DATASET_FORMAT
 	);
 
 	private static int verbosity = 0;
 	private static Path tempDir = Path.of("/tmp/PCPFiller");
 	private static String missingToken = "?";
-	private static Path csvSource;
-	private static Path jsonSource;
-	private static Path modelToLoad;
-	private static Path modelSaveFile;
+	private static Path csvSourcePath;
+	private static Path jsonSourcePath;
+	private static Path modelPathToLoad;
+	private static Path modelSavePath;
+	private static Path outputDatasetPath;
+	private static DatasetFormat outputDatasetFormat = DatasetFormat.ARFF;
 	private static PCPart.Type partToFill;
 
 	public static String getMissingToken() {
@@ -73,50 +75,59 @@ public class Main {
 		log.info("Making temp directory: " + tempDir);
 		tempDir.toFile().mkdirs();
 
-		log.info("Model to load: " + modelToLoad);
-		log.info("Model will be saved in : " + modelSaveFile);
-		log.info("Missing token: " + missingToken);
-		log.info("PCPart to fill: " + partToFill);
-
 		// @todo improve Weka exceptions
 		PCPFiller filler = new PCPFiller(partToFill, loadDataset());
 
-		if (modelToLoad != null) {
-			log.info("Loading model: " + modelToLoad);
-			filler.loadModel(modelToLoad);
+		if (modelPathToLoad != null) {
+			log.info("Loading model: " + modelPathToLoad);
+			filler.loadModel(modelPathToLoad);
 		} else {
 			log.info("Training model...");
 			filler.trainModel();
 			log.info("Done!");
+
 			log.info("Evaluating model...");
 			Evaluation eval = filler.evaluate();
-			log.info(eval.toSummaryString());
+			eval.toSummaryString()
+				.lines()
+				.skip(1)
+				.map(line -> "\t" + line)
+				.forEach(log::info);
 		}
 
-		if (modelSaveFile != null) {
-			filler.saveModel(modelSaveFile);
+		if (modelSavePath != null) {
+			log.info("Saving model to: " + modelSavePath);
+			modelSavePath.getParent().toFile().mkdirs();
+			filler.saveModel(modelSavePath);
+			log.info("Done!");
 		}
 
 		log.info("Filling...");
 		filler.fill();
+		log.info("Done!");
 
-		System.out.println(filler.getDataset());
+		if (outputDatasetPath != null) {
+			log.info("Saving dataset to: " + outputDatasetPath);
+			outputDatasetPath.getParent().toFile().mkdirs();
+			filler.saveDataset(outputDatasetPath, outputDatasetFormat);
+			log.info("Done!");
+		}
 	}
 
 	private static Instances loadDataset() throws IOException {
-		if (jsonSource != null && csvSource != null) {
+		if (jsonSourcePath != null && csvSourcePath != null) {
 			log.warn("Both CSV and JSON have been specified. CSV will be used!");
-			return Utils.instancesFromCSV(csvSource.toFile());
+			return Utils.instancesFromCSV(csvSourcePath.toFile());
 		}
 
-		if (csvSource != null) {
-			log.info("Loading CSV dataset: " + csvSource);
-			return Utils.instancesFromCSV(csvSource.toFile());
+		if (csvSourcePath != null) {
+			log.info("Loading CSV dataset: " + csvSourcePath);
+			return Utils.instancesFromCSV(csvSourcePath.toFile());
 		}
 
-		if (jsonSource != null) {
-			log.info("Loading JSON dataset: " + jsonSource);
-			return Utils.instancesFromJSON(jsonSource.toFile(), partToFill);
+		if (jsonSourcePath != null) {
+			log.info("Loading JSON dataset: " + jsonSourcePath);
+			return Utils.instancesFromJSON(jsonSourcePath.toFile(), partToFill);
 		}
 
 		return null;
@@ -133,7 +144,7 @@ public class Main {
 		}
 	}
 
-	private static void parseOptions(String[] args) throws ParseException, InteruptiveOptionException, PCPartNotSupportedException {
+	private static void parseOptions(String[] args) throws ParseException, InteruptiveOptionException, PCPartNotSupportedException, DatasetFormatSupportedException {
 		CommandLine cli = new DefaultParser().parse(OPTIONS, args);
 
 		verbosity = (int) Stream.of(cli.getOptions())
@@ -169,11 +180,11 @@ public class Main {
 		}
 
 		if (cli.hasOption(OPT_FROM_CSV)) {
-			csvSource = Path.of(cli.getOptionValue(OPT_FROM_CSV));
+			csvSourcePath = Path.of(cli.getOptionValue(OPT_FROM_CSV));
 		}
 
 		if (cli.hasOption(OPT_FROM_JSON)) {
-			jsonSource = Path.of(cli.getOptionValue(OPT_FROM_JSON));
+			jsonSourcePath = Path.of(cli.getOptionValue(OPT_FROM_JSON));
 		}
 
 		if (cli.hasOption(OPT_MISSING_TOKEN)) {
@@ -185,11 +196,27 @@ public class Main {
 		}
 
 		if (cli.hasOption(OPT_LOAD_MODEL)) {
-			modelToLoad = Path.of(cli.getOptionValue(OPT_LOAD_MODEL));
+			modelPathToLoad = Path.of(cli.getOptionValue(OPT_LOAD_MODEL));
 		}
 
 		if (cli.hasOption(OPT_SAVE_MODEL)) {
-			modelSaveFile = Path.of(cli.getOptionValue(OPT_SAVE_MODEL));
+			modelSavePath = Path.of(cli.getOptionValue(OPT_SAVE_MODEL));
+		}
+
+		if (cli.hasOption(OPT_OUT_DATASET)) {
+			outputDatasetPath = Path.of(cli.getOptionValue(OPT_OUT_DATASET));
+		}
+
+		if (cli.hasOption(OPT_OUT_DATASET_FORMAT)) {
+			try {
+				if (!cli.hasOption(OPT_OUT_DATASET)) {
+					log.warn("Output dataset file not specified. Ignoring format option...");
+				} else {
+					outputDatasetFormat = DatasetFormat.valueOf(cli.getOptionValue(OPT_OUT_DATASET_FORMAT).toUpperCase());
+				}
+			} catch (IllegalArgumentException ex) {
+				throw new DatasetFormatSupportedException(cli.getOptionValue(OPT_OUT_DATASET_FORMAT));
+			}
 		}
 	}
 

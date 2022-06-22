@@ -75,6 +75,9 @@
 						<manifest>
 							<mainClass>it.simonvic.pcpfiller.Main</mainClass>
 						</manifest>
+						<manifestEntries>
+							<Multi-Release>true</Multi-Release>
+						</manifestEntries>
 					</archive>
 					<appendAssemblyId>false</appendAssemblyId>
 				</configuration>

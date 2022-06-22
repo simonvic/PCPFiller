@@ -150,7 +150,10 @@ public class Main {
 	}
 
 	private static void printHelp() {
-		new HelpFormatter().printHelp("PCPFiller", OPTIONS);
+		HelpFormatter f = new HelpFormatter();
+		f.setWidth(80);
+		f.setOptionComparator(null);
+		f.printHelp("PCPFiller", OPTIONS, true);
 	}
 
 	private static void printSupportedParts() {
@@ -178,7 +181,7 @@ public class Main {
 		}
 
 		if (!cli.hasOption(OPT_PART)) {
-			log.error("You need to specify at least one PC part!");
+			log.error("You need to specify a PC part!");
 			printSupportedParts();
 			throw new MissingOptionException("");
 		}

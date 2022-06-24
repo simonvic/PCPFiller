@@ -1,5 +1,6 @@
 package it.simonvic.pcpfiller;
 
+import it.simonvic.pcpfiller.classifiers.PCPartClassifier;
 import it.simonvic.pcpfiller.parts.PCPart;
 import java.io.IOException;
 import java.nio.file.Files;

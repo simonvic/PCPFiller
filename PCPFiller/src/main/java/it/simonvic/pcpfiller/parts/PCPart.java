@@ -1,7 +1,7 @@
 package it.simonvic.pcpfiller.parts;
 
-import it.simonvic.pcpfiller.MemoryClassifier;
-import it.simonvic.pcpfiller.PCPartClassifier;
+import it.simonvic.pcpfiller.classifiers.MemoryClassifier;
+import it.simonvic.pcpfiller.classifiers.PCPartClassifier;
 import java.io.Reader;
 
 /**

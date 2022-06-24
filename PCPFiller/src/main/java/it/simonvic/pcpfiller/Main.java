@@ -1,5 +1,8 @@
 package it.simonvic.pcpfiller;
 
+import it.simonvic.pcpfiller.exceptions.DatasetFormatSupportedException;
+import it.simonvic.pcpfiller.exceptions.InteruptiveOptionException;
+import it.simonvic.pcpfiller.exceptions.PCPartNotSupportedException;
 import it.simonvic.pcpfiller.parts.PCPart;
 import java.io.IOException;
 import java.nio.file.Path;

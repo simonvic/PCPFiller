@@ -1,4 +1,4 @@
-package it.simonvic.pcpfiller;
+package it.simonvic.pcpfiller.exceptions;
 
 /**
  *
@@ -7,6 +7,7 @@ package it.simonvic.pcpfiller;
 public class DatasetFormatSupportedException extends Exception {
 
 	public DatasetFormatSupportedException(String optionValue) {
+		super(optionValue);
 	}
-	
+
 }

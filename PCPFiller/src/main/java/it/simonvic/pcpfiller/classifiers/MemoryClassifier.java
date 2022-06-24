@@ -1,4 +1,4 @@
-package it.simonvic.pcpfiller;
+package it.simonvic.pcpfiller.classifiers;
 
 import java.util.Random;
 import org.apache.logging.log4j.LogManager;

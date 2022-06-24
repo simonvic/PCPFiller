@@ -27,7 +27,6 @@ public class Main {
 	/**
 	 * Option definition standard from: https://github.com/simonvic/mangen
 	 */
-	
 	private static final Option OPT_HELP = optionOf("                h,help                                  ?Show this help");
 	private static final Option OPT_VERBOSE = optionOf("             v,verbose                               ?Be verbose. Can be repeated for more verbosity");
 	private static final Option OPT_LOAD_MODEL = optionOf("          m,load-model       :model-file          ?Specify to load a saved model");
@@ -134,6 +133,12 @@ public class Main {
 		}
 	}
 
+	/**
+	 * Load instances from the source specified
+	 *
+	 * @return instances
+	 * @throws IOException
+	 */
 	private static Instances loadDataset() throws IOException {
 		if (jsonSourcePath != null && csvSourcePath != null) {
 			log.warn("Both CSV and JSON have been specified. CSV will be used!");
@@ -153,6 +158,9 @@ public class Main {
 		return null;
 	}
 
+	/**
+	 * Print help (manual) page for CLI
+	 */
 	private static void printHelp() {
 		HelpFormatter f = new HelpFormatter();
 		f.setWidth(80);
@@ -160,13 +168,25 @@ public class Main {
 		f.printHelp("PCPFiller", OPTIONS, true);
 	}
 
+	/**
+	 * Print currently supported PC Parts
+	 */
 	private static void printSupportedParts() {
 		log.info("Supported PC parts:");
-		for (String part : PCPFiller.getSupportedParts()) {
+		for (PCPart.Type part : PCPart.Type.values()) {
 			log.info("\t- " + part);
 		}
 	}
 
+	/**
+	 * Handle the parsing of the CLI options
+	 *
+	 * @param args
+	 * @throws ParseException
+	 * @throws InteruptiveOptionException
+	 * @throws PCPartNotSupportedException
+	 * @throws DatasetFormatSupportedException
+	 */
 	private static void parseOptions(String[] args) throws ParseException, InteruptiveOptionException, PCPartNotSupportedException, DatasetFormatSupportedException {
 		CommandLine cli = new DefaultParser().parse(OPTIONS, args);
 
@@ -245,6 +265,11 @@ public class Main {
 		}
 	}
 
+	/**
+	 *
+	 * @param options
+	 * @return Options
+	 */
 	private static Options optionsOf(String[] options) {
 		Options opts = new Options();
 		Stream.of(options)
@@ -253,6 +278,11 @@ public class Main {
 		return opts;
 	}
 
+	/**
+	 *
+	 * @param options
+	 * @return
+	 */
 	private static Options optionsOf(Option... options) {
 		Options opts = new Options();
 		for (Option option : options) {
@@ -261,6 +291,12 @@ public class Main {
 		return opts;
 	}
 
+	/**
+	 * Build an Option from a string using the "short,long:arg?description" format. https://github.com/simonvic/mangen
+	 *
+	 * @param option
+	 * @return
+	 */
 	private static Option optionOf(String option) {
 		Option.Builder o = Option.builder();
 

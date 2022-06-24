@@ -1,6 +1,4 @@
-package it.simonvic.pcpfiller;
-
-import it.simonvic.pcpfiller.parts.PCPart;
+package it.simonvic.pcpfiller.exceptions;
 
 /**
  *

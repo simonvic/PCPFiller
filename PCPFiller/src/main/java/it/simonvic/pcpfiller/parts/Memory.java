@@ -1,5 +1,9 @@
 package it.simonvic.pcpfiller.parts;
 
+import com.google.gson.Gson;
+import it.simonvic.pcpfiller.PCPFiller;
+import java.io.Reader;
+import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -72,7 +76,28 @@ public non-sealed class Memory extends PCPart {
 	}
 
 	public static class JSON extends PCPart.JSON {
-		
+
+		public static class Root extends PCPart.JSON.Root {
+
+			List<Memory.JSON> memory;
+
+			public static Memory.JSON.Root from(Reader reader) {
+				return new Gson().fromJson(reader, Memory.JSON.Root.class);
+			}
+
+			@Override
+			public String toCSV() {
+				StringBuilder sb = new StringBuilder();
+				sb.append(Memory.getCSVHeader());
+				memory.stream()
+					.map(PCPart.JSON::build)
+					.map(PCPart::toCSV)
+					.map(csvEntry -> csvEntry.replace("null", PCPFiller.getMissingToken()))
+					.forEach(csvEntry -> sb.append(csvEntry).append("\n"));
+				return sb.toString();
+			}
+		}
+
 		@Override
 		public PCPart build() {
 			return new Memory(this);

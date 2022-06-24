@@ -80,6 +80,7 @@
 						</manifestEntries>
 					</archive>
 					<appendAssemblyId>false</appendAssemblyId>
+					<finalName>PCPFiller</finalName>
 				</configuration>
 			</plugin>
 		</plugins>

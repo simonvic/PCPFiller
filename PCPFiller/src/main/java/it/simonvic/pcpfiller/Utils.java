@@ -1,7 +1,6 @@
 package it.simonvic.pcpfiller;
 
 import it.simonvic.pcpfiller.parts.PCPart;
-import it.simonvic.pcpfiller.parts.PCPartsJSON;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,7 +31,7 @@ public class Utils {
 
 	public static Instances instancesFromJSON(File jsonFile, PCPart.Type partType) throws IOException {
 		Reader jsonReader = new InputStreamReader(new FileInputStream(jsonFile));
-		String csv = PCPartsJSON.from(jsonReader, partType).toCSV();
+		String csv = PCPart.JSON.Root.from(jsonReader, partType).toCSV();
 //		Files.writeString(Path.of("/tmp/memory.csv"), sb, StandardOpenOption.CREATE);
 		return instancesFromCSV(csv);
 	}

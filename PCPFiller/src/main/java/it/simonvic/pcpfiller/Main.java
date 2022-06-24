@@ -24,6 +24,10 @@ public class Main {
 
 	private static final Logger log = LogManager.getLogger();
 
+	/**
+	 * Option definition standard from: https://github.com/simonvic/mangen
+	 */
+	
 	private static final Option OPT_HELP = optionOf("                h,help                                  ?Show this help");
 	private static final Option OPT_VERBOSE = optionOf("             v,verbose                               ?Be verbose. Can be repeated for more verbosity");
 	private static final Option OPT_LOAD_MODEL = optionOf("          m,load-model       :model-file          ?Specify to load a saved model");
@@ -35,13 +39,13 @@ public class Main {
 	private static final Option OPT_TEMP_DIR = optionOf("              temp-dir         :directory           ?Specify where to store temporary files used by PCPFiller. Default: '/tmp/PCPFiller'");
 	private static final Option OPT_FROM_JSON = optionOf("           j,from-json        :json-file           ?Load the dataset from a json file");
 	private static final Option OPT_FROM_CSV = optionOf("            c,from-csv         :csv-file            ?Load the dataset from a csv file");
-	private static final Option OPT_OUT_DATASET = optionOf("         O,out-dataset      :output-file         ?Specify where to store the output dataset");
-	private static final Option OPT_OUT_DATASET_FORMAT = optionOf("  F,out-format       :output-format       ?Specify what format to use when saving dataset");
+	private static final Option OPT_SAVE_DATASET = optionOf("        S,save-dataset     :output-file         ?Specify where to save the output dataset");
+	private static final Option OPT_SAVE_DATASET_FORMAT = optionOf(" F,out-format       :output-format       ?Specify what format to use when saving dataset");
 
 	private static final Options OPTIONS = optionsOf(
 		OPT_HELP, OPT_VERBOSE, OPT_LOAD_MODEL, OPT_EVAL_MODEL, OPT_SAVE_MODEL,
 		OPT_PART, OPT_SUPPORTED_PARTS, OPT_FROM_JSON, OPT_FROM_CSV,
-		OPT_MISSING_TOKEN, OPT_TEMP_DIR, OPT_OUT_DATASET, OPT_OUT_DATASET_FORMAT
+		OPT_MISSING_TOKEN, OPT_TEMP_DIR, OPT_SAVE_DATASET, OPT_SAVE_DATASET_FORMAT
 	);
 
 	private static int verbosity = 0;
@@ -224,19 +228,19 @@ public class Main {
 			modelSavePath = Path.of(cli.getOptionValue(OPT_SAVE_MODEL));
 		}
 
-		if (cli.hasOption(OPT_OUT_DATASET)) {
-			outputDatasetPath = Path.of(cli.getOptionValue(OPT_OUT_DATASET));
+		if (cli.hasOption(OPT_SAVE_DATASET)) {
+			outputDatasetPath = Path.of(cli.getOptionValue(OPT_SAVE_DATASET));
 		}
 
-		if (cli.hasOption(OPT_OUT_DATASET_FORMAT)) {
+		if (cli.hasOption(OPT_SAVE_DATASET_FORMAT)) {
 			try {
-				if (!cli.hasOption(OPT_OUT_DATASET)) {
+				if (!cli.hasOption(OPT_SAVE_DATASET)) {
 					log.warn("Output dataset file not specified. Ignoring format option...");
 				} else {
-					outputDatasetFormat = DatasetFormat.valueOf(cli.getOptionValue(OPT_OUT_DATASET_FORMAT).toUpperCase());
+					outputDatasetFormat = DatasetFormat.valueOf(cli.getOptionValue(OPT_SAVE_DATASET_FORMAT).toUpperCase());
 				}
 			} catch (IllegalArgumentException ex) {
-				throw new DatasetFormatSupportedException(cli.getOptionValue(OPT_OUT_DATASET_FORMAT));
+				throw new DatasetFormatSupportedException(cli.getOptionValue(OPT_SAVE_DATASET_FORMAT));
 			}
 		}
 	}

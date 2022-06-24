@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
-import java.util.logging.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import weka.classifiers.Evaluation;
@@ -37,8 +36,8 @@ public class PCPFiller {
 	protected Instances dataset;
 
 	public PCPFiller(PCPart.Type partType, Instances dataset) {
-		this.dataset = dataset;
 		this.pcpClassifier = getPCPClassifier(partType);
+		this.dataset = dataset;
 		dataset.setClass(dataset.attribute(pcpClassifier.getClassName()));
 		try {
 			this.dataset = removeAttributes(this.dataset, pcpClassifier.getAttributesToIgnore());
@@ -101,11 +100,11 @@ public class PCPFiller {
 	}
 
 	private void saveDatasetCSV(Path outputPath) {
-		throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+		throw new UnsupportedOperationException("CSV output format not supported yet.");
 	}
 
 	private void saveDatasetJSON(Path outputPath) {
-		throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+		throw new UnsupportedOperationException("JSON output format not supported yet.");
 	}
 
 	public int getInstancesCount() {

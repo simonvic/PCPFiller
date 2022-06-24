@@ -1,6 +1,5 @@
 import os
 import argparse
-import JSONParser
 from pcpartpicker import API
 
 api = API()

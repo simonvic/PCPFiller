@@ -1,0 +1,253 @@
+\documentclass[12pt]{report}
+\usepackage{blindtext}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{parskip}
+\geometry{a4paper}
+
+\title{PCPFiller}
+\author{Simone Vicinanza}
+
+\begin{document}
+\maketitle
+\section{PCPFiller}
+
+\textbf{PCPFiller} (PC Part Picker Filler) è una utility CLI destinata al
+preprocessing di dataset.
+
+Trovare datasets di componenti hardware per PC per un qualsiasi progetto di ML/DL, che siano
+decenti e reperibili gratuitamente non è per niente facile; la maggior parte dei datasets
+disponibili online sono incompleti, molto obsoleti, troppo piccoli per il training di una AI e
+spesso anche incorretti.
+
+\textbf{PCPFiller} is offre di costruire e fornire datasets completi e di dimensioni sufficienti per allenare
+una AI per scopi didattici e non.
+
+\section{Quick start}
+
+PCPFiller consiste in un helper script python (\texttt{PCPFetcher.py}) il quale ha il compito di
+scaricare dei dataset iniziali, i quali saranno poi utilizzati dal modulo Java che si occuperà del
+"filling" dei dati.
+
+Per una list di comandi e opzioni di `PCPFetcher.py`, consultare la help page con il seguente comando:
+\begin{verbatim}$ python ./PCPFetcher.py --help\end{verbatim}
+
+Per il modulo in java invece:
+\begin{verbatim}$ java -jar ./PCPFiller.jar --help\end{verbatim}
+
+\textbf{NOTA}: per semplicità, da ora in poi il modulo Python e il modulo Java saranno invocati
+rispettivamente con i comandi:
+\begin{verbatim}
+$ PCPFetcher [opzioni]
+$ PCPFiller [opzioni]
+\end{verbatim}
+
+Esempio completo di fetching e filling di un dataset (memorie RAM):
+\begin{verbatim}
+$ mkdir parts
+$ PCPFetcher --fetch memory --region it --output-dir parts
+$ PCPFiller --part memory --from-json parts/memory.json \
+	--save-model /tmp/memory.model \
+	--save-dataset /tmp/dataset.arff \
+	--out-format ARFF
+\end{verbatim}
+
+
+
+\newpage
+\subsection{Fetching di dataset iniziali}
+
+Per prima cosa, \textbf{PCPFiller} scaricherà una lista di componenti hardware dal noto sito
+\underline{\textit{PCPartPicker.com}.} In tale lista sono inclusi componenti principali, quali
+CPU, GPU, RAM, mouse, monitor, HDD, e altre periferiche secondarie.
+Per scaricare i componenti, eseguire il seguente comando:
+\begin{verbatim}$ PCPFetcher --fetch <tipo componente>\end{verbatim}
+Per sapere la lista dei componenti attualmente supportati, eseguire il seguente comando:
+\begin{verbatim}$ PCPFetcher --supported-parts\end{verbatim}
+Il download dei componenti è possibile grazie alle ottime API per python fornite da
+\underline{\textit{PCPartPicker.com}} stesso (\underline{\textit{https://pypi.org/project/pcpartpicker}}),
+ottenibili con \textit{pip}.
+
+\textbf{NOTA}: quando si scaricano i componenti, assicurarsi di settare la \textit{region} correttamente.
+\begin{verbatim}$ PCPFetcher --fetch <tipo componente> --region <regione>\end{verbatim}
+Effettuare il fetching con una regione errata potrebbe risultare in download di dataset diversi
+o addirittura un fallimento del download.
+
+Per sapere la lista delle regioni attualmente supportate, eseguire il seguente comando
+\begin{verbatim}$ PCPFetcher --supported-regions\end{verbatim}
+
+\newpage
+\subsection{Filling del dataset}
+
+\textbf{PCPFiller} (modulo Java) si occpuerà poi di fare il parsing di tali componenti, manipolando
+alcuni dati per facilitarne l'elaborazione, per poi convertirli in formato \textit{CSV}, in modo da
+renderli utilizzabili da altri strumenti come Weka (GUI e API) per eventuale analisi dati, e con lo
+scopo di poter procedere al "filling" di eventuali dati mancanti.
+
+\textbf{NOTA}: le directory di input/output di PCPFiller sono di default \textit{./parts} e
+\textit{./parts/formatted}. Tali percorsi possono essere cambiati; consultare la help page.
+
+Il modulo Java si occuperà del filling dei dati attraverso un modello di ML, che può essere allenato e salvato...
+\begin{verbatim}
+$ PCPFiller --part <pcpart> --from-json <json-dataset> \
+	--save-model <model-file>
+\end{verbatim}
+
+... oppure caricato se già allenato in precedenza
+\begin{verbatim}
+$ PCPFiller --part <pcpart> --from-json <json-dataset> \
+  --load-model <model-file>
+\end{verbatim}
+
+Il dataset in output dopo la fase di filling, potrà essere salvato nei vari formati supportati
+\begin{verbatim}
+$ PCPFiller --part <pcpart> --from-json <json-dataset> \
+  --save-dataset <output-dataset> \
+  --out-format <output-format>
+\end{verbatim}
+
+\newpage
+\section{Descrizione dell'agente intelligente}
+
+L'obiettivo dell'agente è quello di valutare la relazione tra le varie statistiche di un componente,
+per poi essere in grado di completare eventuali dati mancanti (continui e nominali).
+
+\subsection{PEAS}
+
+\begin{itemize}
+	\item\textbf{Performance}\\
+		La performance dell'agente è dettata dalla precisione e accuratezza dei dati mancanti predetti
+	\item\textbf{Enviroment}
+		\begin{itemize}
+			\item \textbf{Completamente osservabile}, dato che ha accesso a tutte le informazioni di un componente
+			\item \textbf{Deterministico}, in quanto i dati predetti dipendono solamente dallo stato iniziale dei componenti e dalle modifiche dell'agente
+			\item \textbf{Sequenziale}, in quanto i dati in output possono variare in baso alle iterazioni precedenti
+			\item \textbf{Statico}, i dati non variano mentre l'agente sta operando
+			\item \textbf{Singolo agente}, in quanto PCPFiller è l'unico a manipolare i dati
+			\item \textbf{Continuo}, la decisione del dato predetto si evolve in modo continuo
+		\end{itemize}
+	\item\textbf{Actuators}\\
+		Gli attuatori consistono nei dati predetti inseriti nel dataset
+	\item\textbf{Sensors}\\
+		I sensori dell'agente consistono nei dati già presenti di un dato componente nel dataset
+\end{itemize}
+
+\subsection{Osservazioni sull'agente}
+
+\textbf{PCPFiller}, con qualche modifica, potrebbe essere adattato per poter lavorare in un ambiente
+dinamico e multi agente, in modo da poter predirre i risultati in modo dinamico dato che il mondo
+economico è sempre in evoluzione.
+
+Si potrebbe tener conto del trend di popolarità del manufacturer del componente
+hardware, eventuali festività che potrebbero portare a cambiamenti (ad esempio al prezzo) e tante
+altre variabili dinamiche.
+
+Però, come menzionato prima, lo scopo di PCPFiller è solo quello di completare e fornire datasets per
+altri eventuali progetti didattici di ML/DL.
+
+\newpage
+\section{Raccolta, analisi e preprocessing dei dati}
+
+\subsection{Scelta di dataset di partenza}
+Per poter fornire un datasets utilizzabile, PCPFiller necessità di alcuni dati di partenza per il
+training del modello di ML che avrà poi lo scopo di predirre i dati mancanti.
+
+L'idea della creazione di un dataset da zero è stata scartata immediatamente per evitare di introdurre
+un ulteriore possibilità di errore.
+
+Quindi, inizialmente si aveva pensato di fare scraping su siti di eShopping (es: Amazon, NewEgg etc.),
+ma anche ciò è risultato impossibile da realizzare, dato che un singolo sito non forniva abbastanza dati,
+e utilizzare piu siti significava dover rendere PCPFiller compatibile con una moltitudine di formati
+dati, il che sarebbe diventato presto impossibile da mantere con un qualisasi cambiamento dei suddetti siti.\\
+Oltretutto, lo scraping potrebbe aver implicazioni legali, in quanto la maggior parte dei siti non lo permettte.
+
+Si è quindi ricorso a \underline{\textit{PCPartPicker.com}}, un sito che offre un'interfaccia per
+creare delle PC build selezionando i vari componenti; il database di PCPartPicker contiente una buona
+mole di dati, e come menzionato in precendenza, offre anche delle API per poter accedere a tali dati.
+
+Le GPU e RAM erano i dataset di partenza con piu dati disponibili.
+\begin{itemize}
+	\item Nel caso delle GPU, le entries sono ~4400.\\
+		Rimuovendo le entries incomplete si arriva a ~350, quindi con una notevole perdita del ~90\%.
+	\item Nel caso delle RAM, le entries sono ~7000.\\
+		Rimuovendo le entries incomplete si arriva a ~1800, quindi con una perdita del ~70\%.
+\end{itemize}
+Come previsto anche \underline{\textit{PCPartPicker.com}}, nonostante i dataset \\relativamente grandi,
+presenta una notevole mole di dati mancanti.
+
+Si è quindi deciso di operare inizialmente al filling del prezzo delle RAM e in futuro di espandere
+il modello su altri attributi e su altri tipi di componenti.
+
+\newpage
+\subsection{Analisi dati disponibili}
+
+Segue una descrizione generale dei dati disponibili per le RAM e l'eventuale utilità per lo scopo predisposto da PCPFiller
+\begin{itemize}
+	\item \textbf{Brand} (\textit{nominal})
+		\begin{itemize}
+			\item Descrizione: Nome del brand della casa produttrice
+			\item Utilità: Potrebbe essere molto utile soprattutto nella predizione di prezzo. Molti brand sono noti per sovrapprezzare i propri prodotti.
+		\end{itemize}
+	\item \textbf{Model} (\textit{nominal})
+		\begin{itemize}
+			\item Descrizione: Nome del modello
+			\item Utilità: Non molto utile, in quando è insolito che due prodotti condividano lo stesso nome; porterebbe solamente all'inquinamento della predizione
+		\end{itemize}
+	\item \textbf{Module Type} (\textit{nominal})
+		\begin{itemize}
+			\item Descrizione: Tipo del modulo (DDR2/3/4).\\Rappresenta la "generazione" del modulo
+			\item Utilità: Molto utile, dato che tipo di moduli diversi fanno variare molto prezzo\\ ed altre statistiche come frequenza e dimensione modulo
+		\end{itemize}
+	\item \textbf{Speed (cycles)} (\textit{numeric})
+		\begin{itemize}
+			\item Descrizione: Frequenza del modulo, rappresentata in hertz (convertita in MHz in fase di preprocessing)
+			\item Utilità: Decisamente utile, in quanto strettamente correlata con altri parametri
+		\end{itemize}
+	\item \textbf{Modules number} (\textit{numeric})
+		\begin{itemize}
+			\item Descrizione: Quantità di moduli
+			\item Utilità: Strettamente correlata all dimensione e prezzo di un singolo modulo (1x8GB, 2x4GB, 2x16GB etc.)
+		\end{itemize}
+	\item \textbf{Price / GB} (\textit{numeric})
+		\begin{itemize}
+			\item Descrizione: Prezzo in Euro per un GB
+			\item Utilità: Dato derivato da prezzo e dimensione/quantità dei moduli.
+		\end{itemize}
+	\item \textbf{Color} (\textit{nominal})
+		\begin{itemize}
+			\item Descrizione: Colore dell'involucro
+			\item Utilità: Alcuni colori (es: Gold, Silver) potrebbero essere correlati a prezzo e brand.
+		\end{itemize}
+	\item \textbf{FW Latency} (\textit{numeric})
+		\begin{itemize}
+			\item Descrizione: First Word Latency, latenza (ns) tempo di accesso (performance del modulo)
+			\item Utilità: Strettamente correlato ad altri parametri
+		\end{itemize}
+	\item \textbf{CAS timing} (\textit{numeric})
+		\begin{itemize}
+			\item Descrizione: Latenza di "Column Access Strobe"
+			\item Utilità: Strettamente correlato ad altri parametri
+		\end{itemize}
+	\item \textbf{ECC} (\textit{nominal})
+		\begin{itemize}
+			\item Descrizione: Error Correction, capacità di correzioni errori (convertita in true/false in fase di preprocessing)
+			\item Utilità: Solitamente la funzionalità di ECC è presente in moduli più pregiati. Quindi correlata ad altri parametri
+		\end{itemize}
+	\item \textbf{Price} (\textit{numeric})
+		\begin{itemize}
+			\item Descrizione: Prezzo in Euro
+			\item Utilità: Decisamente utile
+		\end{itemize}
+\end{itemize}
+
+Anche senza un'analisi dei dati, possiamo confidentemente rimuovere il camp \textit{Model} e \textit{Price per GB}.
+
+Analizzando i dati con Weka, possiamo risalire alle seguenti informazioni
+%\lstinputlisting[language=Java, firstline=13]{PCPFiller/src/main/java/it/simonvic/pcpfiller/classifiers/PCPartClassifier.java}
+
+
+\end{document}
+
+
+

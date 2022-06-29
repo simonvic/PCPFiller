@@ -1,8 +1,6 @@
 package it.simonvic.pcpfiller.classifiers;
 
 import java.util.Random;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import weka.classifiers.Evaluation;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
@@ -12,8 +10,6 @@ import weka.core.Instances;
  * @author simonvic
  */
 public class MemoryClassifier extends PCPartClassifier {
-
-	private static final Logger log = LogManager.getLogger();
 
 	public MemoryClassifier() {
 		super(new RandomForest());

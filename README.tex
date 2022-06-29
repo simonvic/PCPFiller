@@ -7,12 +7,57 @@
 \usepackage[table,xcdraw]{xcolor}
 
 \geometry{a4paper}
-\lstset{
+\usepackage{color}
+\definecolor{hi_comment}{rgb}{0.5, 0.5, 0.5}
+\definecolor{hi_keyword}{rgb}{0.13, 0.13, 1.0}
+\definecolor{hi_string}{rgb}{0.0, 0.5, 0.0}
+\definecolor{hi_rule}{rgb}{0.13, 0.13, 1.0}
+\definecolor{hi_background}{rgb}{0.94,0.95,0.96}
+\lstset{language=Java,
 	basicstyle=\small\ttfamily,
 	columns=fixed,
-	breaklines=true,
-	tabsize=4
+	breaklines=false,
+	tabsize=4,
+	showstringspaces=false,
+	commentstyle = \color{hi_comment},
+	keywordstyle = \color{hi_keyword},
+	stringstyle = \color{hi_string},
+	rulecolor = \color{hi_rule},
+	backgroundcolor=\color{hi_background},
 }
+
+\lstdefinelanguage{json}{
+	numberstyle=\small,
+	showspaces=false,
+	showtabs=false,
+	breaklines=true,
+	postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\color{gray}\hookrightarrow\space}},
+	breakatwhitespace=true,
+	basicstyle=\scriptsize\ttfamily,
+	upquote=true,
+	morestring=[b]",
+	stringstyle=\color{hi_string},
+	backgroundcolor=\color{hi_background},
+	literate=
+	*{0}{{{\color{hi_keyword}0}}}{1}
+	{1}{{{\color{hi_keyword}1}}}{1}
+	{2}{{{\color{hi_keyword}2}}}{1}
+	{3}{{{\color{hi_keyword}3}}}{1}
+	{4}{{{\color{hi_keyword}4}}}{1}
+	{5}{{{\color{hi_keyword}5}}}{1}
+	{6}{{{\color{hi_keyword}6}}}{1}
+	{7}{{{\color{hi_keyword}7}}}{1}
+	{8}{{{\color{hi_keyword}8}}}{1}
+	{9}{{{\color{hi_keyword}9}}}{1}
+	{\{}{{{\color{hi_keyword}{\{}}}}{1}
+	{\}}{{{\color{hi_keyword}{\}}}}}{1}
+	{[}{{{\color{hi_keyword}{[}}}}{1}
+	{]}{{{\color{hi_keyword}{]}}}}{1},
+}
+
+
+
+
 
 \title{PCPFiller}
 \author{Simone Vicinanza}
@@ -361,7 +406,7 @@ Anche in questo caso si sceglie il prezzo come classe, e come metodo di ricerca 
 
 \textbf{NOTA}: L'analisi viene effettuata su tutto il dataset (non vengono usate partizioni)
 
-\begin{lstlisting}
+\begin{lstlisting}[breaklines=true]
 Ranked attributes:
 0.8454    1 -0.443speed-0.436module_type=DDR4-0.423cas_timing+0.409module_type=DDR3+0.282first_word_latency...
 0.7829    2 0.526error_correction=True+0.356module_size+0.341brand=Samsung+0.32 brand=Crucial+0.303first_word_latency...
@@ -403,7 +448,7 @@ partizioni (fold), data la ridotta dimensione del dataset, i risultati migliori 
 \subsection{Linear regression}
 
 \subsubsection{Modello risultante}
-\begin{lstlisting}
+\begin{lstlisting}[breaklines=true]
 price =
 
    66.561  * brand=HP,OCZ,Kingston,PNY,ADATA,Team,IBM,Thermaltake,Crucial,Klevv,Samsung,G.Skill,Corsair,Gigabyte +
@@ -529,29 +574,237 @@ Mettiamo a confronto le performance dei vari algoritmi usati
 
 \begin{table}[!htb]
 	\resizebox{\linewidth}{!}{
-		\begin{tabular}{lll>{\columncolor[HTML]{C0C0C0}}l l}
+		\begin{tabular}{l|l|l|>{\columncolor[HTML]{C0C0C0}}l|l|}
 										 & LinearRegression & RandomTree  & RandomForest & M5P        \\
 			Coefficiente di correlazione &   0.8056         & 0.8915      & 0.9218       & 0.8951     \\
 			Errore medio assoluto        &   81.1316        & 53.9916     & 48.4379      & 52.6507    \\
 			Errore quadratico medio      &   133.8985       & 105.6178    & 92.3005      & 101.0392   \\
 			Errore assoluto relativo     &   59.6785 \%     & 39.7149 \%  & 35.6298 \%   & 38.7286 \% \\
 			Errore quadratico relativo   &   59.2254 \%     & 46.7164 \%  & 40.826  \%   & 44.6912 \%
-		\end{tabular}%
+		\end{tabular}
 	}
 \end{table}
 
-Il \textit{\textbf{Random Forest}} è stato quindi l'algoritmo che ha presentato risultati migliori; si sperava in migliori
-performance con l' \textit{M5P}0, ma forse il dataset di partenza non era sufficientemente grande.
+Il \textit{\textbf{Random Forest}} è stato quindi l'algoritmo che ha presentato risultati migliori;
+si sperava in migliori performance con l' \textit{M5P}, ma forse il dataset di partenza non era
+sufficientemente grande.
 
 \newpage
 \section{Implementazione}
-\subsection{PCPFiller.java}
-\subsection{PCPClassifier.java}
+L'implementazione del modello di ML è stato realizzato con Java, attraverso l'utilizzo delle API di Weka.
+
 \subsection{PCPart.java}
 
-\newpage
-\section{Cosa verrà dopo?}
+La classe \textit{PCPart.java} rappresenta la rappresentazione astratta del nostro componente, e
+la rappresentazione in formato JSON.
 
-%\lstinputlisting[language=Java, firstline=13]{PCPFiller/src/main/java/it/simonvic/pcpfiller/classifiers/PCPartClassifier.java}
+Essa sarà poi estesa e implementata dalle altre classi che rappresenteranno uno specifico componente
+(RAM, CPU, GPU etc.)
+
+\lstinputlisting[
+language=Java,
+firstline=11,
+numbers=left,
+breaklines = true,
+basicstyle=\scriptsize\ttfamily
+]{PCPFiller/src/main/java/it/simonvic/pcpfiller/parts/PCPart.java}
+
+\newpage
+\subsubsection{Memory.java}
+
+Un'implementazione di \textit{PCPart.java} è \textit{Memory.java} che rappresenta le memorie RAM.
+
+Il JSON su cui si basa è il seguente:
+\begin{lstlisting}
+{
+	"memory": [
+	{
+		"brand": "ADATA",
+		"model": "AD2S800B2G5-R 2 GB",
+		"module_type": "DDR2",
+		"speed": {
+			"cycles": 800000000
+		},
+		"number_of_modules": 1,
+		"module_size": {
+			"total": 2000000000
+		},
+		"price_per_gb": [
+			"EUR",
+			"22.225"
+		],
+		"color": "Green",
+		"first_word_latency": 12.5,
+		"cas_timing": 5,
+		"error_correction": "Non-ECC / Unbuffered",
+		"price": [
+			"EUR",
+			"44.45"
+		]
+	},
+}
+\end{lstlisting}
+
+\newpage
+
+\subsubsection{Attributi di Memory e conversion in CSV}
+
+La classe \textit{Memory} rappresenta quindi la singola entry di una memoria RAM. Di seguito possiamo 
+vedere la conversione in CSV dei relativi attributi.
+
+\begin{lstlisting}[language=Java, numbers=left, basicstyle=\scriptsize\ttfamily, breaklines=true]
+public non-sealed class Memory extends PCPart {
+
+	public static String getCSVHeader() {
+		return """
+		"brand","model","moduleType","speedMHz","modulesNumber","moduleSizeGB","pricePerGBEuro","color","firstWordLatency","casTiming","errorCorrection","priceEuro"
+		 """;
+	}
+
+	@Override
+	public String toCSV() {
+		return """
+		"%s","%s","%s",%f,%d,%f,%f,"%s",%f,%f,%b,%f""".formatted(
+			brand, model, moduleType, speedMHz,
+			modulesNumber, moduleSizeGB, pricePerGBEuro, color,
+			firstWordLatency, casTiming, errorCorrection, priceEuro);
+	}
+
+	public enum ModuleType {
+		DDR, DDR2, DDR3, DDR4
+	}
+
+	private String brand;
+	private String model;
+	private ModuleType moduleType;
+	private Double speedMHz;
+	private Integer modulesNumber;
+	private Double moduleSizeGB;
+	private Double pricePerGBEuro;
+	private String color;
+	private Double firstWordLatency;
+	private Double casTiming;
+	private Boolean errorCorrection;
+	private Double priceEuro;
+
+\end{lstlisting}
+
+\newpage
+\subsubsection{Conversione JSON root oject in CSV}
+
+Il seguente metodo verrà chiamato quando si dovrà convertire il dataset JSON in formato CSV,
+che consiste in un header (contenente i nomi degli attributi, e la lista di tutte
+le entry convertite in CSV.
+
+Con gli \textit{Stream} di Java, "costruiamo" gli oggetti con rappresentazione JSON in oggetti
+per l'utilizzo nel nostro modulo Java e li convertiamo in stringhe in formato CSV.
+
+\begin{lstlisting}[language=Java, numbers=left, basicstyle=\scriptsize\ttfamily, breaklines=true]
+	public static class JSON extends PCPart.JSON {
+
+		public static class Root extends PCPart.JSON.Root {
+
+			@Override
+			public String toCSV() {
+				StringBuilder sb = new StringBuilder();
+
+				sb.append(Memory.getCSVHeader());
+				memory.stream()
+					.map(PCPart.JSON::build)
+					.map(PCPart::toCSV)
+					.map(PCPart::replaceMissingDataWithToken)
+					.forEach(csvEntry -> sb.append(csvEntry).append("\n"));
+
+				return sb.toString();
+			}
+		}
+\end{lstlisting}
+
+Da notare che i vari campi \textit{null} sono sostuiti da un \\token (\textit{PCPFiller.getMissingToken()}),
+che rappresenterà un dato mancante. Di default il token è "\textit{?}" (punto interrogativo), dato che
+è il token di default anche in Weka GUI.
+
+\textbf{NOTA}: Il token può essere cambiato specificandolo con l'opzione \textit{--missing-token} via CLI.
+
+\newpage
+\subsection{PCPartClassifier.java}
+\textit{PCPartClassifier} e' un wrapper astratto per il \textit{Classifier} dalle API di Weka, il quale
+fornirà dei metodi helper per astrarre e facilitare la classificazione di una \textit{PCPart}.
+
+\lstinputlisting[
+language=Java,
+firstline=13,
+numbers=left,
+breaklines = true,
+basicstyle=\scriptsize\ttfamily
+]{PCPFiller/src/main/java/it/simonvic/pcpfiller/classifiers/PCPartClassifier.java}
+
+\subsubsection{MemoryClassifier.java}
+
+Un'esempio di implementazione di un \textit{PCPartClassifier} per la classificazione di una \textit{Memory}
+\lstinputlisting[
+language=Java,
+firstline=12,
+numbers=left,
+breaklines = true,
+basicstyle=\scriptsize\ttfamily
+]{PCPFiller/src/main/java/it/simonvic/pcpfiller/classifiers/MemoryClassifier.java}
+
+\newpage
+\subsection{PCPFiller.java}
+
+Abbiamo infine \textit{PCPFiller}, che si occuperà invece di allenare il modello,
+valutarlo, eventualmente salvarlo e infine di fare il "filling", classificando
+le instanze e sostituendo i dati mancanti con il valore predetto.
+\begin{lstlisting}[language=Java, numbers=left, basicstyle=\scriptsize\ttfamily, breaklines=true]
+public class PCPFiller {
+	protected PCPartClassifier pcpClassifier;
+	protected Instances dataset;
+
+	public PCPFiller(PCPart.Type partType, Instances dataset) {
+		this.pcpClassifier = PCPart.classifierOf(partType);
+		this.dataset = dataset;
+		dataset.setClass(dataset.attribute(pcpClassifier.getClassName()));
+		try {
+			this.dataset = removeAttributes(this.dataset, pcpClassifier.getAttributesToIgnore());
+		} catch (Exception ex) {
+			log.warn("Can't remove attributes: " + Arrays.toString(pcpClassifier.getAttributesToIgnore()));
+			log.warn(ex);
+		}
+	}
+	[...]
+	public void fill() throws Exception {
+		for (Instance i : dataset.stream().toList()) {
+			i.setClassValue(pcpClassifier.classify(i));
+		}
+	}
+	[...]
+	/**
+	 * Save the dataset in its current state to a file, using the specified format
+	 *
+	 * @param outputPath
+	 * @param outputDatasetFormat
+	 * @throws IOException
+	 */
+	public void saveDataset(Path outputPath, DatasetFormat outputDatasetFormat) throws IOException {
+		switch (outputDatasetFormat) {
+			case ARFF -> saveDatasetARFF(outputPath);
+			case CSV -> saveDatasetCSV(outputPath);
+			case JSON -> saveDatasetJSON(outputPath);
+		}
+	}
+
+	/**
+	 * Save the dataset in ARFF format
+	 *
+	 * @param outputPath
+	 * @throws IOException
+	 */
+	private void saveDatasetARFF(Path outputPath) throws IOException {
+		Files.write(outputPath, dataset.toString().getBytes(), StandardOpenOption.CREATE);
+	}
+\end{lstlisting}
+
+
 
 \end{document}

@@ -775,4 +775,26 @@ public class PCPFiller {
 	}
 \end{lstlisting}
 
+\newpage
+\section{Test run}
+
+Eseguiamo una test run del nostro modulo Java...
+
+\includegraphics[width=\linewidth]{tex/img/testrun.png}
+
+Come si può notare dalle statistiche, siamo passati da un dataset di 7158 instanze, di cui solo
+il 25\% utilizzabile (1791 instanze), ad un dataset utilizzabile al 100\% !
+
+Ora si potrebbe facilmente caricare il modello salvato in \textit{/tmp/memory.model} su Weka,
+per succesive analisi o test.
+Lo stesso vale per il dataset completeo (\textit{/tmp/dataset.arff})!
+
+\section{Futuro}
+
+Ora non resta che espandere il nostro progetto per poter supportare tutti i tipi di componenti;
+si potrebbe anche migliorare ulteriormente automatizzando la scelta degli attributi da scartare/usare
+per le predizioni!
+
+E perchè no? Estendere il progetto ad altri tipi di dataset?
+
 \end{document}

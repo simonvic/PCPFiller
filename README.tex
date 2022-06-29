@@ -1,7 +1,7 @@
 \documentclass[12pt]{report}
-\usepackage{blindtext}
-\usepackage{geometry}
+\usepackage[a4paper, total={7in, 10in}]{geometry}
 \usepackage{graphicx}
+\usepackage{hyperref}
 \usepackage{listings}
 \usepackage{parskip}
 \usepackage[table,xcdraw]{xcolor}
@@ -26,46 +26,15 @@
 	backgroundcolor=\color{hi_background},
 }
 
-\lstdefinelanguage{json}{
-	numberstyle=\small,
-	showspaces=false,
-	showtabs=false,
-	breaklines=true,
-	postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\color{gray}\hookrightarrow\space}},
-	breakatwhitespace=true,
-	basicstyle=\scriptsize\ttfamily,
-	upquote=true,
-	morestring=[b]",
-	stringstyle=\color{hi_string},
-	backgroundcolor=\color{hi_background},
-	literate=
-	*{0}{{{\color{hi_keyword}0}}}{1}
-	{1}{{{\color{hi_keyword}1}}}{1}
-	{2}{{{\color{hi_keyword}2}}}{1}
-	{3}{{{\color{hi_keyword}3}}}{1}
-	{4}{{{\color{hi_keyword}4}}}{1}
-	{5}{{{\color{hi_keyword}5}}}{1}
-	{6}{{{\color{hi_keyword}6}}}{1}
-	{7}{{{\color{hi_keyword}7}}}{1}
-	{8}{{{\color{hi_keyword}8}}}{1}
-	{9}{{{\color{hi_keyword}9}}}{1}
-	{\{}{{{\color{hi_keyword}{\{}}}}{1}
-	{\}}{{{\color{hi_keyword}{\}}}}}{1}
-	{[}{{{\color{hi_keyword}{[}}}}{1}
-	{]}{{{\color{hi_keyword}{]}}}}{1},
-}
-
-
 
 
 
 \title{PCPFiller}
 \author{Simone Vicinanza}
+\date{}
 
 \begin{document}
-
 \maketitle
-
 \tableofcontents
 
 \newpage
@@ -107,11 +76,10 @@ $ PCPFiller [opzioni]
 
 Esempio completo di fetching e filling di un dataset (memorie RAM):
 \begin{lstlisting}
-$ mkdir parts
-$ PCPFetcher --fetch memory --region it --output-dir parts
-$ PCPFiller --part memory --from-json parts/memory.json \
-	--save-model /tmp/memory.model \
-	--save-dataset /tmp/dataset.arff \
+$ PCPFetcher --fetch memory --region it
+$ PCPFiller --part memory --from-json memory.json \
+	--save-model memory.model \
+	--save-dataset dataset.arff \
 	--out-format ARFF
 \end{lstlisting}
 
@@ -120,21 +88,21 @@ $ PCPFiller --part memory --from-json parts/memory.json \
 \newpage
 \subsection{Fetching di dataset iniziali}
 
-Per prima cosa, \textbf{PCPFiller} scaricherà una lista di componenti hardware dal noto sito
-\underline{\textit{PCPartPicker.com}.} In tale lista sono inclusi componenti principali, quali
+Per prima cosa, \textbf{PCPFiller} scaricherà una lista di componenti hardware dal noto \\
+sito \underline{\textit{PCPartPicker.com}.} In tale lista sono inclusi componenti principali, quali
 CPU, GPU, RAM, mouse, monitor, HDD, e altre periferiche secondarie.
 Per scaricare i componenti, eseguire il seguente comando:
 \begin{lstlisting}
 $ PCPFetcher --fetch <tipo componente>
 \end{lstlisting}
 
-Per sapere la lista dei componenti attualmente supportati, eseguire il seguente comando:
+Per sapere la lista dei componenti attualmente supportati a PCPFetcher, eseguire il seguente comando:
 \begin{lstlisting}
 $ PCPFetcher --supported-parts
 \end{lstlisting}
 
-Il download dei componenti è possibile grazie alle ottime API per python fornite da
-\underline{\textit{PCPartPicker.com}} stesso (\underline{\textit{https://pypi.org/project/pcpartpicker}}),
+Il download dei componenti è possibile grazie alle ottime API per python \\
+fornite da \underline{\textit{PCPartPicker.com}} stesso (\underline{\textit{https://pypi.org/project/pcpartpicker}}),
 ottenibili con \textit{pip}.
 
 \textbf{NOTA}: quando si scaricano i componenti, assicurarsi di settare la \textit{region} correttamente.
@@ -314,7 +282,6 @@ Segue una descrizione generale dei dati disponibili per le RAM e l'eventuale uti
 
 Anche senza un'attenta analisi dei dati, possiamo confidentemente rimuovere il campo \textit{Model} e \textit{Price per GB}.
 
-\newpage
 Analizzando i dati con Weka, possiamo risalire alle seguenti informazioni
 
 \includegraphics[width=\linewidth]{tex/img/attributes_stats.png}
@@ -329,6 +296,7 @@ Dei dati piu rilevanti, possiamo dire:
 \end{itemize}
 
 \newpage
+\subsection{Relazioni con attributo prezzo}
 Dato che ci interessa principalmente la previsione di campi correlati al prezzo,
 commentiamo la loro relazione
 
@@ -593,6 +561,8 @@ sufficientemente grande.
 \section{Implementazione}
 L'implementazione del modello di ML è stato realizzato con Java, attraverso l'utilizzo delle API di Weka.
 
+Andiamone ad osservare i componenti principali.
+
 \subsection{PCPart.java}
 
 La classe \textit{PCPart.java} rappresenta la rappresentazione astratta del nostro componente, e
@@ -804,7 +774,5 @@ public class PCPFiller {
 		Files.write(outputPath, dataset.toString().getBytes(), StandardOpenOption.CREATE);
 	}
 \end{lstlisting}
-
-
 
 \end{document}

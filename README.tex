@@ -4,12 +4,14 @@
 \usepackage{graphicx}
 \usepackage{listings}
 \usepackage{parskip}
+\usepackage[table,xcdraw]{xcolor}
 
 \geometry{a4paper}
 \lstset{
 	basicstyle=\small\ttfamily,
-	columns=flexible,
-	breaklines=true
+	columns=fixed,
+	breaklines=true,
+	tabsize=4
 }
 
 \title{PCPFiller}
@@ -42,27 +44,31 @@ scaricare dei dataset iniziali, i quali saranno poi utilizzati dal modulo Java c
 "filling" dei dati.
 
 Per una list di comandi e opzioni di `PCPFetcher.py`, consultare la help page con il seguente comando:
-\begin{verbatim}$ python ./PCPFetcher.py --help\end{verbatim}
+\begin{lstlisting}
+$ python ./PCPFetcher.py --help
+\end{lstlisting}
 
 Per il modulo in java invece:
-\begin{verbatim}$ java -jar ./PCPFiller.jar --help\end{verbatim}
+\begin{lstlisting}
+$ java -jar ./PCPFiller.jar --help
+\end{lstlisting}
 
 \textbf{NOTA}: per semplicità, da ora in poi il modulo Python e il modulo Java saranno invocati
 rispettivamente con i comandi:
-\begin{verbatim}
+\begin{lstlisting}
 $ PCPFetcher [opzioni]
 $ PCPFiller [opzioni]
-\end{verbatim}
+\end{lstlisting}
 
 Esempio completo di fetching e filling di un dataset (memorie RAM):
-\begin{verbatim}
+\begin{lstlisting}
 $ mkdir parts
 $ PCPFetcher --fetch memory --region it --output-dir parts
 $ PCPFiller --part memory --from-json parts/memory.json \
 	--save-model /tmp/memory.model \
 	--save-dataset /tmp/dataset.arff \
 	--out-format ARFF
-\end{verbatim}
+\end{lstlisting}
 
 
 
@@ -73,20 +79,31 @@ Per prima cosa, \textbf{PCPFiller} scaricherà una lista di componenti hardware 
 \underline{\textit{PCPartPicker.com}.} In tale lista sono inclusi componenti principali, quali
 CPU, GPU, RAM, mouse, monitor, HDD, e altre periferiche secondarie.
 Per scaricare i componenti, eseguire il seguente comando:
-\begin{verbatim}$ PCPFetcher --fetch <tipo componente>\end{verbatim}
+\begin{lstlisting}
+$ PCPFetcher --fetch <tipo componente>
+\end{lstlisting}
+
 Per sapere la lista dei componenti attualmente supportati, eseguire il seguente comando:
-\begin{verbatim}$ PCPFetcher --supported-parts\end{verbatim}
+\begin{lstlisting}
+$ PCPFetcher --supported-parts
+\end{lstlisting}
+
 Il download dei componenti è possibile grazie alle ottime API per python fornite da
 \underline{\textit{PCPartPicker.com}} stesso (\underline{\textit{https://pypi.org/project/pcpartpicker}}),
 ottenibili con \textit{pip}.
 
 \textbf{NOTA}: quando si scaricano i componenti, assicurarsi di settare la \textit{region} correttamente.
-\begin{verbatim}$ PCPFetcher --fetch <tipo componente> --region <regione>\end{verbatim}
+\begin{lstlisting}
+$ PCPFetcher --fetch <tipo componente> --region <regione>
+\end{lstlisting}
+
 Effettuare il fetching con una regione errata potrebbe risultare in download di dataset diversi
 o addirittura un fallimento del download.
 
 Per sapere la lista delle regioni attualmente supportate, eseguire il seguente comando
-\begin{verbatim}$ PCPFetcher --supported-regions\end{verbatim}
+\begin{lstlisting}
+$ PCPFetcher --supported-regions
+\end{lstlisting}
 
 \newpage
 \subsection{Filling del dataset}
@@ -100,23 +117,23 @@ scopo di poter procedere al "filling" di eventuali dati mancanti.
 \textit{./parts/formatted}. Tali percorsi possono essere cambiati; consultare la help page.
 
 Il modulo Java si occuperà del filling dei dati attraverso un modello di ML, che può essere allenato e salvato...
-\begin{verbatim}
+\begin{lstlisting}
 $ PCPFiller --part <pcpart> --from-json <json-dataset> \
 	--save-model <model-file>
-\end{verbatim}
+\end{lstlisting}
 
 ... oppure caricato se già allenato in precedenza
-\begin{verbatim}
+\begin{lstlisting}
 $ PCPFiller --part <pcpart> --from-json <json-dataset> \
-  --load-model <model-file>
-\end{verbatim}
+	--load-model <model-file>
+\end{lstlisting}
 
 Il dataset in output dopo la fase di filling, potrà essere salvato nei vari formati supportati
-\begin{verbatim}
+\begin{lstlisting}
 $ PCPFiller --part <pcpart> --from-json <json-dataset> \
-  --save-dataset <output-dataset> \
-  --out-format <output-format>
-\end{verbatim}
+	--save-dataset <output-dataset> \
+	--out-format <output-format>
+\end{lstlisting}
 
 \newpage
 \section{Descrizione dell'agente intelligente}
@@ -359,19 +376,182 @@ Ranked attributes:
 [...]
 \end{lstlisting}
 
+
+\newpage
 \section{Processing dei dati}
+Il prezzo è un valore continuo, possiamo quindi scegliere vari algoritmi specializziati per regressione con valori numerici:
+
+\begin{itemize}
+	\item LinearRegression
+	\item Alberi
+		\begin {itemize}
+	\item RandomTree
+	\item RandomForest
+	\item M5P
+\end{itemize}
+\end{itemize}
+
+Per quanto riguarda il testing, creare un dataset specificatamente per esso era fuori discussione.
+
+Si è quindi optato per una k-fold cross-validation. I test sono stati effettuati con 5, 10 e 15
+partizioni (fold), data la ridotta dimensione del dataset, i risultati migliori si sono ottenuti con 10 fold.
+
+\textbf{NOTA}: dato che stiamo cercando di creare un modello per la predizione del prezzo, il nostro obiettivo
+è quello di ridurre quanto più possibile lo scarto quadratico.
+
+\newpage
 \subsection{Linear regression}
+
+\subsubsection{Modello risultante}
+\begin{lstlisting}
+price =
+
+   66.561  * brand=HP,OCZ,Kingston,PNY,ADATA,Team,IBM,Thermaltake,Crucial,Klevv,Samsung,G.Skill,Corsair,Gigabyte +
+ -110.007  * brand=OCZ,Kingston,PNY,ADATA,Team,IBM,Thermaltake,Crucial,Klevv,Samsung,G.Skill,Corsair,Gigabyte +
+   27.7063 * brand=Kingston,PNY,ADATA,Team,IBM,Thermaltake,Crucial,Klevv,Samsung,G.Skill,Corsair,Gigabyte +
+   16.9202 * brand=PNY,ADATA,Team,IBM,Thermaltake,Crucial,Klevv,Samsung,G.Skill,Corsair,Gigabyte +
+  -39.1303 * brand=IBM,Thermaltake,Crucial,Klevv,Samsung,G.Skill,Corsair,Gigabyte +
+  -19.4201 * brand=Thermaltake,Crucial,Klevv,Samsung,G.Skill,Corsair,Gigabyte +
+   41.2542 * brand=Crucial,Klevv,Samsung,G.Skill,Corsair,Gigabyte +
+  -17.8709 * brand=Klevv,Samsung,G.Skill,Corsair,Gigabyte +
+  -28.8788 * brand=Samsung,G.Skill,Corsair,Gigabyte +
+   57.8274 * brand=G.Skill,Corsair,Gigabyte +
+   15.5456 * brand=Corsair,Gigabyte +
+ -191.5702 * module_type=DDR3,DDR4 +
+ -149.078  * module_type=DDR4 +
+  104.3092 * number_of_modules +
+   10.9041 * module_size +
+  -18.723  * first_word_latency +
+   20.0331 * cas_timing +
+  -69.9652 * error_correction=False +
+  137.2024
+\end{lstlisting}
+
+\newpage
+\subsubsection{Risultati}
+\begin{table}[ht]
+	\centering
+	\begin{tabular}{p{0.4\linewidth}p{0.4\linewidth}}
+		Coefficiente di correlazione & 0.8056     \\
+		Errore medio assoluto        & 81.1316    \\
+		Errore quadratico medio      & 133.8985   \\
+		Errore assoluto relativo     & 59.6785 \% \\
+		Errore quadratico relativo   & 59.2254 \% \\
+	\end{tabular}
+\end{table}
+
+\includegraphics[width=\linewidth]{tex/img/result_linearregression.png}
+
+L'algoritmo di linear regression è quindi risultato discreto. Come si può vedere tende a sovrastimare
+il prezzo.
+
+Esploriamo altri algoritmi.
+
+\newpage
 \subsection{RandomTree}
+
+\subsubsection{Modello risultante}
+\includegraphics[width=\linewidth]{tex/img/model_randomTree.png}
+
+\newpage
+\subsubsection{Risultati}
+\begin{table}[ht]
+	\centering
+	\begin{tabular}{p{0.4\linewidth}p{0.4\linewidth}}
+		Coefficiente di correlazione & 0.8915     \\
+		Errore medio assoluto        & 53.9916    \\
+		Errore quadratico medio      & 105.6178   \\
+		Errore assoluto relativo     & 39.7149 \% \\
+		Errore quadratico relativo   & 46.7164 \% \\
+	\end{tabular}
+\end{table}
+\includegraphics[width=\linewidth]{tex/img/result_randomTree.png}
+
+Come si può notare si ottengono risultati migliori, anche se l'albero risultante è molto grande,
+probabilmente a causa dell'attributo Brand; anche senza il Brand la performance non cambiava di molto.
+
+Vediamo se si può migliorare ulteriormente.
+
+\newpage
 \subsection{RandomForest}
+\subsubsection{Risultati}
+\begin{table}[ht]
+	\centering
+	\begin{tabular}{p{0.4\linewidth}p{0.4\linewidth}}
+		Coefficiente di correlazione & 0.9218     \\
+		Errore medio assoluto        & 48.4379    \\
+		Errore quadratico medio      & 92.3005    \\
+		Errore assoluto relativo     & 35.6298 \% \\
+		Errore quadratico relativo   & 40.826 \%  \\
+	\end{tabular}
+\end{table}
+\includegraphics[width=\linewidth]{tex/img/result_randomForest.png}
+
+Il RandomForest ha migliorato ulteriormente la performance, riducendo ancora l'errore medio.
+
+Possiamo fare ancora di meglio?
+
+\newpage
 \subsection{M5P}
 
+\begin{quote}
+	\textit{
+		L'algoritmo M5P combina un convenzionale albero decisionale con la
+		possibilità di una funzione di regressione lineare alle foglie.
+	}
+\end{quote}
+
+L'algoritmo ha presentato risultati migliori se si effettuava il pruning. I risultati seguenti sono con pruning.
+
+\subsubsection{Modello risultante}
+\includegraphics[width=\linewidth]{tex/img/model_m5p.png}
+
+\newpage
+\subsubsection{Risultati}
+\begin{table}[ht]
+	\centering
+	\begin{tabular}{p{0.4\linewidth}p{0.4\linewidth}}
+		Coefficiente di correlazione & 0.8951     \\
+		Errore medio assoluto        & 52.6507    \\
+		Errore quadratico medio      & 101.0392   \\
+		Errore assoluto relativo     & 38.7286 \% \\
+		Errore quadratico relativo   & 44.6912 \% \\
+	\end{tabular}
+\end{table}
+\includegraphics[width=\linewidth]{tex/img/result_m5p.png}
+Possiamo dire che l'algoritmo M5P ha presentato buone prestazioni, con un numero discreto di foglie, che 
+quindi con solo 10 LinearModel
+
+\newpage
 \section{Scelta dell'algoritmo}
+
+Mettiamo a confronto le performance dei vari algoritmi usati
+
+\begin{table}[!htb]
+	\resizebox{\linewidth}{!}{
+		\begin{tabular}{lll>{\columncolor[HTML]{C0C0C0}}l l}
+										 & LinearRegression & RandomTree  & RandomForest & M5P        \\
+			Coefficiente di correlazione &   0.8056         & 0.8915      & 0.9218       & 0.8951     \\
+			Errore medio assoluto        &   81.1316        & 53.9916     & 48.4379      & 52.6507    \\
+			Errore quadratico medio      &   133.8985       & 105.6178    & 92.3005      & 101.0392   \\
+			Errore assoluto relativo     &   59.6785 \%     & 39.7149 \%  & 35.6298 \%   & 38.7286 \% \\
+			Errore quadratico relativo   &   59.2254 \%     & 46.7164 \%  & 40.826  \%   & 44.6912 \%
+		\end{tabular}%
+	}
+\end{table}
+
+Il \textit{\textbf{Random Forest}} è stato quindi l'algoritmo che ha presentato risultati migliori; si sperava in migliori
+performance con l' \textit{M5P}0, ma forse il dataset di partenza non era sufficientemente grande.
+
+\newpage
 \section{Implementazione}
 \subsection{PCPFiller.java}
 \subsection{PCPClassifier.java}
 \subsection{PCPart.java}
 
+\newpage
 \section{Cosa verrà dopo?}
 
 %\lstinputlisting[language=Java, firstline=13]{PCPFiller/src/main/java/it/simonvic/pcpfiller/classifiers/PCPartClassifier.java}
+
 \end{document}

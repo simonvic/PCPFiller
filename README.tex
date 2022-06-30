@@ -28,7 +28,6 @@
 
 
 
-
 \title{PCPFiller}
 \author{Simone Vicinanza}
 \date{}
@@ -163,15 +162,15 @@ per poi essere in grado di completare eventuali dati mancanti (continui e nomina
 		\begin{itemize}
 			\item \textbf{Completamente osservabile}, dato che ha accesso a tutte le informazioni di un componente
 			\item \textbf{Deterministico}, in quanto i dati predetti dipendono solamente dallo stato iniziale dei componenti e dalle modifiche dell'agente
-			\item \textbf{Sequenziale}, in quanto i dati in output possono variare in baso alle iterazioni precedenti
+			\item \textbf{Sequenziale}, in quanto i dati in output possono variare in base alle iterazioni precedenti
 			\item \textbf{Statico}, i dati non variano mentre l'agente sta operando
 			\item \textbf{Singolo agente}, in quanto PCPFiller è l'unico a manipolare i dati
 			\item \textbf{Continuo}, la decisione del dato predetto si evolve in modo continuo
 		\end{itemize}
 	\item\textbf{Actuators}\\
-		Gli attuatori consistono nei dati predetti inseriti nel dataset
+		Gli attuatori consistono nei dataset in output
 	\item\textbf{Sensors}\\
-		I sensori dell'agente consistono nei dati già presenti di un dato componente nel dataset
+		I sensori dell'agente consistono nei dataset in input
 \end{itemize}
 
 \subsection{Osservazioni sull'agente}
@@ -296,7 +295,7 @@ Dei dati piu rilevanti, possiamo dire:
 \end{itemize}
 
 \newpage
-\subsection{Relazioni con attributo prezzo}
+\subsection{Visualizzazione relazioni attributi}
 Dato che ci interessa principalmente la previsione di campi correlati al prezzo,
 commentiamo la loro relazione
 
